@@ -68,7 +68,34 @@ def run_simulation(method: str, seed: int | None = None, max_steps: int = 500) -
     return env.get_trace()
 
 
+def _find_trace_jsons():
+    """Scan project root + results/ for trace JSON files."""
+    traces = []
+    for dirpath in [".", "results"]:
+        if not os.path.isdir(dirpath):
+            continue
+        for f in sorted(os.listdir(dirpath)):
+            if f.endswith(".json") and "trace" in f.lower():
+                rel = os.path.join(dirpath, f) if dirpath != "." else f
+                rel = rel.lstrip("./")
+                traces.append(rel)
+    return traces
+
+
 class VarahaHandler(SimpleHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == "/api/traces":
+            traces = _find_trace_jsons()
+            payload = json.dumps(traces).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(payload)))
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(payload)
+        else:
+            super().do_GET()
+
     def do_POST(self):
         if self.path == "/api/run":
             length = int(self.headers.get("Content-Length", 0))

@@ -31,35 +31,35 @@ from sim_types import (
 class VarahaConfig:
     """All tunable environment parameters live here."""
 
-    # World bounds (metres)
-    world_x: float = 600.0
-    world_y: float = 600.0
-    world_z: float = 100.0
+    # World bounds (metres) — 5 km × 5 km operational area
+    world_x: float = 5000.0
+    world_y: float = 5000.0
+    world_z: float = 200.0
 
     # Drone physics
-    battery_capacity: float = 100.0
-    max_speed: float = 15.0          # m/s
-    max_acceleration: float = 5.0    # m/s²
+    battery_capacity: float = 300.0
+    max_speed: float = 25.0          # m/s
+    max_acceleration: float = 8.0    # m/s²
     dt: float = 0.5                  # seconds per step
 
     # Episode
-    max_episode_steps: int = 500
+    max_episode_steps: int = 2000
 
-    # Battery drain coefficients
-    drain_per_meter: float = 0.04
-    drain_elevation_factor: float = 0.08
-    drain_idle_per_step: float = 0.01
-    recharge_rate: float = 2.0       # battery units restored per recharge step
+    # Battery drain coefficients (tuned for 5 km scale)
+    drain_per_meter: float = 0.008
+    drain_elevation_factor: float = 0.02
+    drain_idle_per_step: float = 0.005
+    recharge_rate: float = 5.0       # battery units restored per recharge step
 
     # Reward knobs
-    delivery_reward: float = 100.0
-    return_bonus: float = 50.0
-    step_penalty: float = 0.1
-    battery_cost_factor: float = 0.5
-    collision_penalty: float = 200.0
-    hazard_penalty: float = 50.0
-    failure_penalty: float = 100.0
-    distance_shaping_factor: float = 0.05
+    delivery_reward: float = 200.0
+    return_bonus: float = 100.0
+    step_penalty: float = 0.05
+    battery_cost_factor: float = 0.3
+    collision_penalty: float = 300.0
+    hazard_penalty: float = 30.0
+    failure_penalty: float = 200.0
+    distance_shaping_factor: float = 0.02
 
     # California origin anchor (near Sacramento — wildfire-relevant)
     origin_lat: float = 38.55
@@ -109,60 +109,67 @@ class VarahaEnv:
     # ------------------------------------------------------------------
 
     def _build_demo_world(self) -> None:
-        """Hardcoded demo scenario.
+        """Hardcoded 5 km demo scenario.
 
-        Layout (top-down, +x → east, +y → north)::
+        Layout (top-down, +x → east, +y → north, 5 km × 5 km)::
 
-            Base (50,50)
-              ·
-              T1 (200,80)           O1 box [250-300, 150-250]
-              ·
-              ·       H2 (120,350)  O2 box [80-160, 250-300]
-              ·
-              T3 (150,480)           H1 (380,300)   T2 (420,320)
+            T3 (1000,4200)
+            ·
+            H2 (900,3200)    O2 [500-1500, 2600-3000]
+            ·
+            ·                   T2 (4100,2900) ← inside H1 fringe
+            ·                H1 (3800,2600)
+            ·
+            ·        O1 [2200-2800, 1000-2200]
+            ·
+            ·   T1 (1800,600)
+            ·
+            Base (250,250)
 
-        - T2 sits near hazard H1 → requires careful approach
+        - T2 sits inside the fringe of hazard H1 → brief hazard exposure required
         - T3 is behind obstacle O2 and near hazard H2
-        - Straight-line paths from base are risky
+        - O1 blocks direct mid-map routing from T1 to T2
+        - Drone can fly over obstacles if altitude > obstacle height
+        - Total route ≈ 12 km, battery budget ≈ 300 units
         """
-        self.base = BaseStation(position=Vec3(50.0, 50.0, 0.0), recharge_radius=20.0)
+        self.base = BaseStation(position=Vec3(250.0, 250.0, 0.0), recharge_radius=80.0)
 
         self.targets = [
             DeliveryTarget(
-                id="T1", position=Vec3(200.0, 80.0, 15.0),
-                urgency=0.6, delivery_radius=15.0,
+                id="T1", position=Vec3(1800.0, 600.0, 30.0),
+                urgency=0.6, delivery_radius=50.0,
             ),
             DeliveryTarget(
-                id="T2", position=Vec3(420.0, 320.0, 25.0),
-                urgency=1.0, delivery_radius=15.0,
+                id="T2", position=Vec3(4100.0, 2900.0, 50.0),
+                urgency=1.0, delivery_radius=50.0,
             ),
             DeliveryTarget(
-                id="T3", position=Vec3(150.0, 480.0, 10.0),
-                urgency=0.8, delivery_radius=15.0,
+                id="T3", position=Vec3(1000.0, 4200.0, 20.0),
+                urgency=0.8, delivery_radius=50.0,
             ),
         ]
 
         self.hazards = [
             HazardRegion(
-                id="H1", center=Vec3(380.0, 300.0, 30.0),
-                radius=70.0, severity=0.9,
+                id="H1", center=Vec3(3800.0, 2600.0, 40.0),
+                radius=500.0, severity=0.9,
             ),
             HazardRegion(
-                id="H2", center=Vec3(120.0, 350.0, 20.0),
-                radius=50.0, severity=0.7,
+                id="H2", center=Vec3(900.0, 3200.0, 25.0),
+                radius=400.0, severity=0.7,
             ),
         ]
 
         self.obstacles = [
             ObstacleVolume(
                 id="O1",
-                min_corner=Vec3(250.0, 150.0, 0.0),
-                max_corner=Vec3(300.0, 250.0, 60.0),
+                min_corner=Vec3(2200.0, 1000.0, 0.0),
+                max_corner=Vec3(2800.0, 2200.0, 120.0),
             ),
             ObstacleVolume(
                 id="O2",
-                min_corner=Vec3(80.0, 250.0, 0.0),
-                max_corner=Vec3(160.0, 300.0, 45.0),
+                min_corner=Vec3(500.0, 2600.0, 0.0),
+                max_corner=Vec3(1500.0, 3000.0, 90.0),
             ),
         ]
 
@@ -490,11 +497,17 @@ class VarahaEnv:
             total += bd["return_bonus"]
 
         # distance shaping — small nudge toward nearest goal
+        # Skip shaping on delivery steps to avoid a huge negative spike
+        # when the nearest-target reference jumps to a farther target.
         curr_dist = self._nearest_target_dist()
-        shaping = (self._prev_nearest_dist - curr_dist) * self.cfg.distance_shaping_factor
-        bd["distance_shaping"] = shaping
-        total += shaping
-        self._prev_nearest_dist = curr_dist
+        if info.delivered_target_ids:
+            bd["distance_shaping"] = 0.0
+            self._prev_nearest_dist = curr_dist
+        else:
+            shaping = (self._prev_nearest_dist - curr_dist) * self.cfg.distance_shaping_factor
+            bd["distance_shaping"] = shaping
+            total += shaping
+            self._prev_nearest_dist = curr_dist
 
         # failure (battery depletion; collision already penalised above)
         if self.drone.battery <= 0.0 and not info.collision:

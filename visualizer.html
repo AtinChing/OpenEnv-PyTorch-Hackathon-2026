@@ -216,8 +216,11 @@
   </div>
 
   <div>
-    <h2>Load Saved Trace</h2>
+    <h2>Trace Files</h2>
     <div class="trace-select" id="builtin-traces"></div>
+    <div style="margin-top:6px">
+      <div class="btn" id="btn-refresh-traces" style="font-size:10px;padding:5px 10px;opacity:0.6">refresh list</div>
+    </div>
     <div style="margin-top:8px">
       <label id="file-input-label" for="file-input">or drop / click to load JSON</label>
       <input type="file" id="file-input" accept=".json">
@@ -285,7 +288,7 @@
 </div>
 
 <script>
-const BUILTIN_TRACES = ['trace_heuristic.json', 'trace_random.json'];
+let BUILTIN_TRACES = [];
 
 let data = null;
 let currentFrame = 0;
@@ -710,24 +713,49 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'End') { e.preventDefault(); stopPlay(); currentFrame = data.trace.length - 1; updateUI(); draw(); }
 });
 
-// built-in traces
+// dynamically discover trace files from server
 const builtinDiv = document.getElementById('builtin-traces');
-for (const name of BUILTIN_TRACES) {
-  const btn = document.createElement('div');
-  btn.className = 'btn';
-  btn.textContent = name.replace('trace_','').replace('.json','');
-  btn.addEventListener('click', async () => {
-    try {
-      const resp = await fetch(name);
-      if (!resp.ok) throw new Error('HTTP ' + resp.status);
-      const json = await resp.json();
-      builtinDiv.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      loadTrace(json);
-    } catch(err) { alert('Could not load ' + name + '. Make sure it exists next to visualizer.html.\n\n' + err.message); }
-  });
-  builtinDiv.appendChild(btn);
+
+async function refreshTraceList() {
+  builtinDiv.innerHTML = '<div style="color:var(--text-dim);font-size:11px;font-family:DM Mono,monospace">loading...</div>';
+  try {
+    const resp = await fetch('/api/traces');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    BUILTIN_TRACES = await resp.json();
+  } catch (err) {
+    builtinDiv.innerHTML = '<div style="color:var(--danger);font-size:11px">Could not fetch trace list</div>';
+    return;
+  }
+  builtinDiv.innerHTML = '';
+  if (BUILTIN_TRACES.length === 0) {
+    builtinDiv.innerHTML = '<div style="color:var(--text-dim);font-size:11px;font-family:DM Mono,monospace">no trace files found</div>';
+    return;
+  }
+  for (const name of BUILTIN_TRACES) {
+    const btn = document.createElement('div');
+    btn.className = 'btn';
+    const short = name.replace(/^results\//, '').replace('trace_','').replace('.json','');
+    btn.textContent = short;
+    btn.title = name;
+    btn.addEventListener('click', async () => {
+      btn.textContent = '...';
+      try {
+        const resp = await fetch(name);
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const json = await resp.json();
+        builtinDiv.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        btn.textContent = short;
+        loadTrace(json);
+      } catch(err) {
+        btn.textContent = short;
+        alert('Could not load ' + name + '.\n\n' + err.message);
+      }
+    });
+    builtinDiv.appendChild(btn);
+  }
 }
+refreshTraceList();
 
 // run simulation via API
 async function runSimulation(method) {
@@ -765,6 +793,8 @@ document.getElementById('btn-run-random').addEventListener('click', () => runSim
 document.getElementById('seed-input').addEventListener('input', (e) => {
   document.getElementById('seed-display').textContent = e.target.value.trim() || 'random';
 });
+
+document.getElementById('btn-refresh-traces').addEventListener('click', refreshTraceList);
 </script>
 </body>
 </html>
