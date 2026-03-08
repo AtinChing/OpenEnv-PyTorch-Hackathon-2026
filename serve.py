@@ -69,17 +69,28 @@ def run_simulation(method: str, seed: int | None = None, max_steps: int = 500) -
 
 
 def _find_trace_jsons():
-    """Scan project root + results/ for trace JSON files."""
+    """Scan for JSON traces.
+
+    - Keep legacy behavior: include top-level project JSON files with "trace" in filename.
+    - Include every JSON file under results/ recursively.
+    """
     traces = []
-    for dirpath in [".", "results"]:
-        if not os.path.isdir(dirpath):
-            continue
-        for f in sorted(os.listdir(dirpath)):
-            if f.endswith(".json") and "trace" in f.lower():
-                rel = os.path.join(dirpath, f) if dirpath != "." else f
-                rel = rel.lstrip("./")
+
+    # Legacy top-level trace discovery.
+    for f in sorted(os.listdir(".")):
+        if os.path.isfile(f) and f.lower().endswith(".json") and "trace" in f.lower():
+            traces.append(f)
+
+    # Recursive results/** discovery.
+    if os.path.isdir("results"):
+        for root, _, files in os.walk("results"):
+            for f in sorted(files):
+                if not f.lower().endswith(".json"):
+                    continue
+                rel = os.path.join(root, f).lstrip("./")
                 traces.append(rel)
-    return traces
+
+    return sorted(set(traces))
 
 
 class VarahaHandler(SimpleHTTPRequestHandler):

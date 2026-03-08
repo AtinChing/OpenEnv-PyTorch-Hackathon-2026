@@ -67,6 +67,85 @@ class VarahaConfig:
 
 
 # ---------------------------------------------------------------------------
+# Random world generator for domain randomization
+# ---------------------------------------------------------------------------
+
+def build_random_world(env: "VarahaEnv") -> None:
+    """Generate a randomized world layout for domain-randomized training.
+
+    Varies: number of targets (1-3), number of hazards (0-3),
+    number of obstacles (0-4), positions, sizes, urgencies,
+    delivery radii, fire heights, and world scale.
+    """
+    cfg = env.cfg
+    rng = random
+
+    scale = rng.uniform(0.6, 1.0)
+    wx, wy = cfg.world_x * scale, cfg.world_y * scale
+    margin = 250.0
+
+    def _rpos(z_lo=10.0, z_hi=50.0):
+        return Vec3(
+            rng.uniform(margin, wx - margin),
+            rng.uniform(margin, wy - margin),
+            rng.uniform(z_lo, z_hi),
+        )
+
+    def _hdist(a, b):
+        return ((a.x - b.x) ** 2 + (a.y - b.y) ** 2) ** 0.5
+
+    base_pos = Vec3(rng.uniform(80, wx - 80), rng.uniform(80, wy - 80), 0.0)
+    env.base = BaseStation(position=base_pos, recharge_radius=rng.uniform(60, 120))
+
+    n_targets = rng.choices([1, 2, 3], weights=[0.15, 0.30, 0.55])[0]
+    targets = []
+    urgency_pool = [rng.uniform(0.3, 0.6), rng.uniform(0.5, 0.8), rng.uniform(0.8, 1.0)]
+    rng.shuffle(urgency_pool)
+    for i in range(n_targets):
+        for _ in range(80):
+            pos = _rpos(z_lo=5.0, z_hi=60.0)
+            if _hdist(pos, base_pos) < 400:
+                continue
+            if all(_hdist(pos, t.position) > 300 for t in targets):
+                break
+        targets.append(DeliveryTarget(
+            id=f"T{i+1}", position=pos,
+            urgency=urgency_pool[i],
+            delivery_radius=rng.uniform(70.0, 140.0),
+        ))
+    env.targets = targets
+
+    n_hazards = rng.choices([0, 1, 2, 3], weights=[0.10, 0.35, 0.35, 0.20])[0]
+    hazards = []
+    for i in range(n_hazards):
+        center = _rpos(z_lo=0, z_hi=0)
+        center.z = 0.0
+        hazards.append(HazardRegion(
+            id=f"H{i+1}", center=center,
+            radius=rng.uniform(250.0, 700.0),
+            severity=rng.uniform(0.4, 1.0),
+            height=rng.uniform(35.0, 100.0),
+            growth_rate=rng.uniform(0.001, 0.012),
+        ))
+    env.hazards = hazards
+
+    n_obs = rng.choices([0, 1, 2, 3, 4], weights=[0.10, 0.30, 0.30, 0.20, 0.10])[0]
+    obstacles = []
+    for i in range(n_obs):
+        cx = rng.uniform(margin, wx - margin)
+        cy = rng.uniform(margin, wy - margin)
+        w = rng.uniform(150, 900)
+        h = rng.uniform(150, 900)
+        z_top = rng.uniform(50, 160)
+        obstacles.append(ObstacleVolume(
+            id=f"O{i+1}",
+            min_corner=Vec3(cx - w / 2, cy - h / 2, 0.0),
+            max_corner=Vec3(cx + w / 2, cy + h / 2, z_top),
+        ))
+    env.obstacles = obstacles
+
+
+# ---------------------------------------------------------------------------
 # Environment
 # ---------------------------------------------------------------------------
 
@@ -86,8 +165,10 @@ class VarahaEnv:
     Returns ``(obs_dict, reward, done, info_dict)`` per OpenAI-gym convention.
     """
 
-    def __init__(self, config: Optional[VarahaConfig] = None) -> None:
+    def __init__(self, config: Optional[VarahaConfig] = None,
+                 world_fn: Optional[Any] = None) -> None:
         self.cfg = config or VarahaConfig()
+        self._world_fn = world_fn
 
         self.base: BaseStation
         self.drone: DroneState
@@ -104,8 +185,13 @@ class VarahaEnv:
         self._hazard_base_heights: list[float] = []
         self._hazard_base_severities: list[float] = []
 
-        self._build_demo_world()
+        self._rebuild_world()
 
+    def _rebuild_world(self):
+        if self._world_fn is not None:
+            self._world_fn(self)
+        else:
+            self._build_demo_world()
         self._hazard_base_heights = [h.height for h in self.hazards]
         self._hazard_base_severities = [h.severity for h in self.hazards]
 
@@ -142,15 +228,15 @@ class VarahaEnv:
         self.targets = [
             DeliveryTarget(
                 id="T1", position=Vec3(1800.0, 600.0, 30.0),
-                urgency=0.6, delivery_radius=50.0,
+                urgency=0.6, delivery_radius=80.0,
             ),
             DeliveryTarget(
                 id="T2", position=Vec3(4100.0, 2900.0, 50.0),
-                urgency=1.0, delivery_radius=50.0,
+                urgency=1.0, delivery_radius=120.0,
             ),
             DeliveryTarget(
                 id="T3", position=Vec3(1000.0, 4200.0, 20.0),
-                urgency=0.8, delivery_radius=50.0,
+                urgency=0.8, delivery_radius=100.0,
             ),
         ]
 
@@ -188,6 +274,9 @@ class VarahaEnv:
         """Reset the environment and return the initial observation."""
         if seed is not None:
             random.seed(seed)
+
+        if self._world_fn is not None:
+            self._rebuild_world()
 
         self.drone = DroneState(
             position=Vec3(self.base.position.x, self.base.position.y, 0.0),
@@ -276,7 +365,9 @@ class VarahaEnv:
             delivered_ids = self._deliver_targets()
 
         reached_base = (
-            self.drone.position.distance_to(self.base.position) <= self.base.recharge_radius
+            ((self.drone.position.x - self.base.position.x) ** 2
+             + (self.drone.position.y - self.base.position.y) ** 2) ** 0.5
+            <= self.base.recharge_radius
         )
         if action.get("recharge", False) and reached_base:
             self.drone.battery = min(
@@ -460,9 +551,17 @@ class VarahaEnv:
         return in_hazard, max_sev
 
     def _deliver_targets(self) -> list[str]:
+        """Cylindrical delivery check — drone must be within horizontal radius
+        and above the target (within a generous altitude window for drops)."""
         delivered: list[str] = []
         for t in self.targets:
-            if not t.delivered and self.drone.position.distance_to(t.position) <= t.delivery_radius:
+            if t.delivered:
+                continue
+            dx = self.drone.position.x - t.position.x
+            dy = self.drone.position.y - t.position.y
+            horiz_dist = (dx * dx + dy * dy) ** 0.5
+            alt_above = self.drone.position.z - t.position.z
+            if horiz_dist <= t.delivery_radius and -10.0 <= alt_above <= t.delivery_radius * 2:
                 t.delivered = True
                 delivered.append(t.id)
         return delivered
@@ -471,20 +570,21 @@ class VarahaEnv:
         return all(t.delivered for t in self.targets)
 
     def _is_success(self) -> bool:
-        return (
-            self._all_delivered()
-            and self.drone.position.distance_to(self.base.position) <= self.base.recharge_radius
-        )
+        hdist = ((self.drone.position.x - self.base.position.x) ** 2
+                 + (self.drone.position.y - self.base.position.y) ** 2) ** 0.5
+        return self._all_delivered() and hdist <= self.base.recharge_radius
 
     def _nearest_target_dist(self) -> float:
-        """Distance to closest undelivered target, or to base if all done."""
+        """Horizontal distance to closest undelivered target, or to base if all done."""
         dists = [
-            self.drone.position.distance_to(t.position)
+            ((self.drone.position.x - t.position.x) ** 2
+             + (self.drone.position.y - t.position.y) ** 2) ** 0.5
             for t in self.targets
             if not t.delivered
         ]
         if not dists:
-            return self.drone.position.distance_to(self.base.position)
+            return ((self.drone.position.x - self.base.position.x) ** 2
+                    + (self.drone.position.y - self.base.position.y) ** 2) ** 0.5
         return min(dists)
 
     def _compute_reward(self, info: StepInfo) -> tuple[float, dict[str, float]]:

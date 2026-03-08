@@ -22,6 +22,7 @@ from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
 
 from sb3_env_wrapper import VarahaSB3Env
+from varaha_env import build_random_world
 
 
 # -----------------------------------------------------------------------
@@ -146,7 +147,7 @@ def train(total_timesteps: int = 10_000_000, n_envs: int = 64, save_dir: str = "
 
     def make_env(rank):
         def _init():
-            env = VarahaSB3Env()
+            env = VarahaSB3Env(world_fn=build_random_world)
             env = Monitor(env)
             return env
         return _init

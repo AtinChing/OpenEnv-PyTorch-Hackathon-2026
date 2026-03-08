@@ -1,11 +1,11 @@
 {
-  "mean_reward": 436.2332955371136,
-  "std_reward": 0.0,
-  "mean_length": 2000.0,
-  "mean_deliveries": 1.0,
-  "success_rate": 0.0,
+  "mean_reward": 1989.36996051575,
+  "std_reward": 0.09415258535545683,
+  "mean_length": 1002.0,
+  "mean_deliveries": 3.0,
+  "success_rate": 1.0,
   "n_episodes": 20,
   "training_timesteps": 10000000,
-  "training_seconds": 981.7,
-  "training_episodes": 5110
+  "training_seconds": 624.3,
+  "training_episodes": 16774
 }

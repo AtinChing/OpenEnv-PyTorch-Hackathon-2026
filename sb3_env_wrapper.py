@@ -37,9 +37,9 @@ class VarahaSB3Env(gym.Env):
     N_TARGETS = 3
     N_HAZARDS = 2
 
-    def __init__(self, config: VarahaConfig | None = None):
+    def __init__(self, config: VarahaConfig | None = None, world_fn=None):
         super().__init__()
-        self.env = VarahaEnv(config)
+        self.env = VarahaEnv(config, world_fn=world_fn)
         cfg = self.env.cfg
 
         obs_dim = 17 + self.N_TARGETS * 5 + self.N_HAZARDS * 4  # 40
@@ -117,24 +117,31 @@ class VarahaSB3Env(gym.Env):
             vec.append(dist / self._max_dist)
             vec.extend([bx / self._max_dist, by / self._max_dist, bz / self._max_dist])
 
-        for t in targets:
-            rp = t["relative_position"]
-            vec.extend([
-                rp["x"] / self._max_dist,
-                rp["y"] / self._max_dist,
-                rp["z"] / self._max_dist,
-                t["urgency"],
-                1.0 if t["delivered"] else 0.0,
-            ])
+        for i in range(self.N_TARGETS):
+            if i < len(targets):
+                rp = targets[i]["relative_position"]
+                vec.extend([
+                    rp["x"] / self._max_dist,
+                    rp["y"] / self._max_dist,
+                    rp["z"] / self._max_dist,
+                    targets[i]["urgency"],
+                    1.0 if targets[i]["delivered"] else 0.0,
+                ])
+            else:
+                vec.extend([0.0, 0.0, 0.0, 0.0, 1.0])
 
-        for h in obs.get("hazards", [])[: self.N_HAZARDS]:
-            hp = h["relative_position"]
-            vec.extend([
-                hp["x"] / self._max_dist,
-                hp["y"] / self._max_dist,
-                h["current_height"] / c.world_z,
-                h["severity"],
-            ])
+        hazards = obs.get("hazards", [])
+        for i in range(self.N_HAZARDS):
+            if i < len(hazards):
+                hp = hazards[i]["relative_position"]
+                vec.extend([
+                    hp["x"] / self._max_dist,
+                    hp["y"] / self._max_dist,
+                    hazards[i]["current_height"] / c.world_z,
+                    hazards[i]["severity"],
+                ])
+            else:
+                vec.extend([0.0, 0.0, 0.0, 0.0])
 
         return np.array(vec, dtype=np.float32)
 

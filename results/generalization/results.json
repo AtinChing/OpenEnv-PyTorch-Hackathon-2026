@@ -1,0 +1,127 @@
+[
+  {
+    "map": "training",
+    "mean_reward": 1989.3,
+    "std_reward": 0.1,
+    "mean_deliveries": 3.0,
+    "max_deliveries": 3,
+    "success_rate": 1.0,
+    "mean_length": 1002.0,
+    "best_reward": 1989.4,
+    "best_delivered": [
+      "T1",
+      "T2",
+      "T3"
+    ],
+    "trace_file": "./results/generalization/trace_training.json"
+  },
+  {
+    "map": "reversed",
+    "mean_reward": 1922.8,
+    "std_reward": 0.3,
+    "mean_deliveries": 3.0,
+    "max_deliveries": 3,
+    "success_rate": 1.0,
+    "mean_length": 956.0,
+    "best_reward": 1923.2,
+    "best_delivered": [
+      "T1",
+      "T2",
+      "T3"
+    ],
+    "trace_file": "./results/generalization/trace_reversed.json"
+  },
+  {
+    "map": "fire_corridor",
+    "mean_reward": 1905.9,
+    "std_reward": 0.7,
+    "mean_deliveries": 3.0,
+    "max_deliveries": 3,
+    "success_rate": 1.0,
+    "mean_length": 743.0,
+    "best_reward": 1906.6,
+    "best_delivered": [
+      "T1",
+      "T2",
+      "T3"
+    ],
+    "trace_file": "./results/generalization/trace_fire_corridor.json"
+  },
+  {
+    "map": "dense_obstacles",
+    "mean_reward": 1997.9,
+    "std_reward": 0.1,
+    "mean_deliveries": 3.0,
+    "max_deliveries": 3,
+    "success_rate": 1.0,
+    "mean_length": 955.0,
+    "best_reward": 1998.1,
+    "best_delivered": [
+      "T1",
+      "T2",
+      "T3"
+    ],
+    "trace_file": "./results/generalization/trace_dense_obstacles.json"
+  },
+  {
+    "map": "long_range",
+    "mean_reward": 2060.9,
+    "std_reward": 0.2,
+    "mean_deliveries": 3.0,
+    "max_deliveries": 3,
+    "success_rate": 1.0,
+    "mean_length": 1228.0,
+    "best_reward": 2061.2,
+    "best_delivered": [
+      "T1",
+      "T2",
+      "T3"
+    ],
+    "trace_file": "./results/generalization/trace_long_range.json"
+  },
+  {
+    "map": "clustered_fires",
+    "mean_reward": 1825.1,
+    "std_reward": 0.3,
+    "mean_deliveries": 3.0,
+    "max_deliveries": 3,
+    "success_rate": 1.0,
+    "mean_length": 789.0,
+    "best_reward": 1826.1,
+    "best_delivered": [
+      "T1",
+      "T2",
+      "T3"
+    ],
+    "trace_file": "./results/generalization/trace_clustered_fires.json"
+  },
+  {
+    "map": "single_target",
+    "mean_reward": 1204.3,
+    "std_reward": 0.1,
+    "mean_deliveries": 1.0,
+    "max_deliveries": 1,
+    "success_rate": 1.0,
+    "mean_length": 800.0,
+    "best_reward": 1204.5,
+    "best_delivered": [
+      "T1"
+    ],
+    "trace_file": "./results/generalization/trace_single_target.json"
+  },
+  {
+    "map": "two_targets",
+    "mean_reward": 1500.8,
+    "std_reward": 0.2,
+    "mean_deliveries": 2.0,
+    "max_deliveries": 2,
+    "success_rate": 1.0,
+    "mean_length": 877.0,
+    "best_reward": 1501.0,
+    "best_delivered": [
+      "T1",
+      "T2"
+    ],
+    "trace_file": "./results/generalization/trace_two_targets.json"
+  }
+]
