@@ -141,7 +141,7 @@ def save_trajectories(model, save_dir: str, n: int = 3, prefix: str = "trace_tra
 # Main training loop
 # -----------------------------------------------------------------------
 
-def train(total_timesteps: int = 10_000_000, n_envs: int = 32, save_dir: str = "./results"):
+def train(total_timesteps: int = 10_000_000, n_envs: int = 64, save_dir: str = "./results"):
     os.makedirs(save_dir, exist_ok=True)
 
     def make_env(rank):
@@ -156,8 +156,9 @@ def train(total_timesteps: int = 10_000_000, n_envs: int = 32, save_dir: str = "
     model = PPO(
         "MlpPolicy",
         vec_env,
+        policy_kwargs=dict(net_arch=[256, 256]),
         n_steps=2048,
-        batch_size=512,
+        batch_size=1024,
         n_epochs=10,
         learning_rate=3e-4,
         gamma=0.995,
@@ -227,7 +228,7 @@ def train(total_timesteps: int = 10_000_000, n_envs: int = 32, save_dir: str = "
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train PPO on Varaha")
     parser.add_argument("--timesteps", type=int, default=10_000_000)
-    parser.add_argument("--n-envs", type=int, default=32)
+    parser.add_argument("--n-envs", type=int, default=64)
     parser.add_argument("--save-dir", type=str, default="./results")
     args = parser.parse_args()
     train(total_timesteps=args.timesteps, n_envs=args.n_envs, save_dir=args.save_dir)

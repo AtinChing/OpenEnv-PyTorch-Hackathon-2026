@@ -101,8 +101,13 @@ class VarahaEnv:
         self.trace: list[TracePoint] = []
 
         self._prev_nearest_dist: float = 0.0
+        self._hazard_base_heights: list[float] = []
+        self._hazard_base_severities: list[float] = []
 
         self._build_demo_world()
+
+        self._hazard_base_heights = [h.height for h in self.hazards]
+        self._hazard_base_severities = [h.severity for h in self.hazards]
 
     # ------------------------------------------------------------------
     # World setup
@@ -195,9 +200,9 @@ class VarahaEnv:
         for t in self.targets:
             t.delivered = False
 
-        for h in self.hazards:
-            h.height = h.height * random.uniform(0.85, 1.15)
-            h.severity = max(0.3, min(1.0, h.severity + random.uniform(-0.1, 0.1)))
+        for i, h in enumerate(self.hazards):
+            h.height = self._hazard_base_heights[i] * random.uniform(0.85, 1.15)
+            h.severity = max(0.3, min(1.0, self._hazard_base_severities[i] + random.uniform(-0.1, 0.1)))
             h.reset()
 
         self.step_count = 0
