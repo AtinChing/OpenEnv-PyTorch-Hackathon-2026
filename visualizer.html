@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Varaha Flight Trace</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0c0e13;
+    --panel: #14171e;
+    --border: #1e2330;
+    --text: #c8cdd8;
+    --text-dim: #5a6275;
+    --accent: #4ae68a;
+    --accent-dim: rgba(74,230,138,0.15);
+    --danger: #f45866;
+    --danger-dim: rgba(244,88,102,0.2);
+    --warn: #f4a358;
+    --warn-dim: rgba(244,163,88,0.15);
+    --blue: #58a6f4;
+    --blue-dim: rgba(88,166,244,0.15);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Outfit', sans-serif;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+  #sidebar {
+    width: 300px;
+    min-width: 300px;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    gap: 16px;
+    overflow-y: auto;
+  }
+  #sidebar h1 {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+  #sidebar h2 {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .stat-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .stat-card .label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .stat-card .value {
+    font-family: 'DM Mono', monospace;
+    font-size: 18px;
+    font-weight: 500;
+    margin-top: 2px;
+  }
+  .stat-card.full { grid-column: span 2; }
+  .controls { display: flex; flex-direction: column; gap: 8px; }
+  .btn {
+    background: var(--accent-dim);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+    user-select: none;
+  }
+  .btn:hover { background: rgba(74,230,138,0.25); }
+  .btn-row { display: flex; gap: 8px; }
+  .btn-row .btn { flex: 1; }
+  input[type=range] {
+    width: 100%;
+    accent-color: var(--accent);
+    margin-top: 4px;
+  }
+  .slider-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    justify-content: space-between;
+  }
+  .event-log {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    line-height: 1.6;
+    min-height: 100px;
+  }
+  .event-log .ev {
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-bottom: 2px;
+  }
+  .ev-delivery { color: var(--accent); background: var(--accent-dim); }
+  .ev-collision { color: var(--danger); background: var(--danger-dim); }
+  .ev-hazard { color: var(--warn); background: var(--warn-dim); }
+  .ev-success { color: var(--blue); background: var(--blue-dim); }
+  #file-input-label {
+    display: block;
+    text-align: center;
+    padding: 30px 14px;
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-dim);
+    transition: border-color 0.2s;
+  }
+  #file-input-label:hover { border-color: var(--accent); color: var(--text); }
+  #file-input { display: none; }
+  #main {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    position: relative;
+  }
+  canvas {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #0a0c10;
+  }
+  .trace-select { display: flex; gap: 6px; flex-wrap: wrap; }
+  .trace-select .btn.active {
+    background: var(--accent);
+    color: var(--bg);
+    font-weight: 500;
+  }
+  #legend {
+    position: absolute;
+    top: 30px;
+    right: 30px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    line-height: 2;
+    color: var(--text-dim);
+    pointer-events: none;
+  }
+  .legend-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  .legend-line {
+    display: inline-block;
+    width: 16px;
+    height: 2px;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+</style>
+</head>
+<body>
+<div id="sidebar">
+  <h1>Varaha Trace</h1>
+
+  <div>
+    <h2>Run Simulation</h2>
+    <div class="btn-row">
+      <div class="btn" id="btn-run-heuristic">Heuristic</div>
+      <div class="btn" id="btn-run-random">Random</div>
+    </div>
+    <div style="margin-top:6px">
+      <div class="slider-label"><span>Seed</span><span id="seed-display">random</span></div>
+      <input type="number" id="seed-input" placeholder="random" style="
+        width:100%; background:var(--bg); border:1px solid var(--border);
+        border-radius:6px; padding:6px 10px; color:var(--text);
+        font-family:'DM Mono',monospace; font-size:12px; outline:none;
+      ">
+    </div>
+    <div id="run-status" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-dim);margin-top:4px"></div>
+  </div>
+
+  <div>
+    <h2>Load Saved Trace</h2>
+    <div class="trace-select" id="builtin-traces"></div>
+    <div style="margin-top:8px">
+      <label id="file-input-label" for="file-input">or drop / click to load JSON</label>
+      <input type="file" id="file-input" accept=".json">
+    </div>
+  </div>
+
+  <div>
+    <h2>Summary</h2>
+    <div class="stat-grid" id="summary-grid">
+      <div class="stat-card"><div class="label">Steps</div><div class="value" id="s-steps">--</div></div>
+      <div class="stat-card"><div class="label">Reward</div><div class="value" id="s-reward">--</div></div>
+      <div class="stat-card"><div class="label">Battery</div><div class="value" id="s-battery">--</div></div>
+      <div class="stat-card"><div class="label">Status</div><div class="value" id="s-status">--</div></div>
+      <div class="stat-card full"><div class="label">Delivered</div><div class="value" id="s-delivered">--</div></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <h2>Playback</h2>
+    <div class="btn-row">
+      <div class="btn" id="btn-play">Play</div>
+      <div class="btn" id="btn-reset">Reset</div>
+    </div>
+    <div>
+      <div class="slider-label"><span>Step</span><span id="step-display">0 / 0</span></div>
+      <input type="range" id="step-slider" min="0" max="0" value="0">
+    </div>
+    <div>
+      <div class="slider-label"><span>Speed</span><span id="speed-display">5x</span></div>
+      <input type="range" id="speed-slider" min="1" max="30" value="5">
+    </div>
+  </div>
+
+  <div>
+    <h2>Current Frame</h2>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="label">Position</div><div class="value" style="font-size:14px" id="f-pos">--</div></div>
+      <div class="stat-card"><div class="label">Battery</div><div class="value" id="f-bat">--</div></div>
+      <div class="stat-card"><div class="label">Step Reward</div><div class="value" id="f-rew">--</div></div>
+      <div class="stat-card"><div class="label">Cum. Reward</div><div class="value" id="f-cumr">--</div></div>
+    </div>
+  </div>
+
+  <div style="min-height:120px;display:flex;flex-direction:column">
+    <h2>Events (click to jump)</h2>
+    <div class="event-log" id="event-log" style="max-height:150px"></div>
+  </div>
+
+  <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+    <h2>Observation (step <span id="obs-step">--</span>)</h2>
+    <div class="event-log" id="obs-panel" style="white-space:pre;font-size:10px;line-height:1.5;color:var(--text)"></div>
+  </div>
+</div>
+
+<div id="main">
+  <canvas id="canvas"></canvas>
+  <div id="legend">
+    <div><span class="legend-dot" style="background:#58a6f4"></span>Base Station</div>
+    <div><span class="legend-dot" style="background:#f4a358"></span>Target (pending)</div>
+    <div><span class="legend-dot" style="background:#4ae68a"></span>Target (delivered)</div>
+    <div><span class="legend-line" style="background:rgba(244,88,50,0.6)"></span>Hazard Zone</div>
+    <div><span class="legend-line" style="background:rgba(90,98,117,0.6)"></span>Obstacle</div>
+    <div><span class="legend-dot" style="background:#4ae68a"></span>Drone</div>
+  </div>
+</div>
+
+<script>
+const BUILTIN_TRACES = ['trace_heuristic.json', 'trace_random.json'];
+
+let data = null;
+let currentFrame = 0;
+let playing = false;
+let playInterval = null;
+let speed = 5;
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const dpr = window.devicePixelRatio || 1;
+
+function resizeCanvas() {
+  const main = document.getElementById('main');
+  const sz = Math.min(main.clientWidth - 40, main.clientHeight - 40, 900);
+  canvas.width = sz * dpr;
+  canvas.height = sz * dpr;
+  canvas.style.width = sz + 'px';
+  canvas.style.height = sz + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (data) draw();
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+function wx(x) { const sz = canvas.width / dpr; const margin = 30; return margin + (x / (data.world.bounds.x)) * (sz - 2*margin); }
+function wy(y) { const sz = canvas.height / dpr; const margin = 30; return sz - margin - (y / (data.world.bounds.y)) * (sz - 2*margin); }
+function wr(r) { const sz = canvas.width / dpr; const margin = 30; return (r / (data.world.bounds.x)) * (sz - 2*margin); }
+
+function isTargetDeliveredAtFrame(targetId) {
+  for (let i = 0; i <= currentFrame && i < data.trace.length; i++) {
+    if (data.trace[i].events?.some(e => e === 'delivered_' + targetId)) return true;
+  }
+  return false;
+}
+
+function draw() {
+  if (!data) return;
+  const sz = canvas.width / dpr;
+  ctx.clearRect(0, 0, sz, sz);
+
+  // grid
+  ctx.strokeStyle = '#1a1d26';
+  ctx.lineWidth = 0.5;
+  const gridStep = 50;
+  const bx = data.world.bounds.x;
+  const by = data.world.bounds.y;
+  for (let g = 0; g <= bx; g += gridStep) {
+    ctx.beginPath(); ctx.moveTo(wx(g), wy(0)); ctx.lineTo(wx(g), wy(by)); ctx.stroke();
+  }
+  for (let g = 0; g <= by; g += gridStep) {
+    ctx.beginPath(); ctx.moveTo(wx(0), wy(g)); ctx.lineTo(wx(bx), wy(g)); ctx.stroke();
+  }
+  // axis labels
+  ctx.fillStyle = '#2a2f3d';
+  ctx.font = '9px DM Mono';
+  ctx.textAlign = 'center';
+  for (let g = 0; g <= bx; g += 100) {
+    ctx.fillText(g, wx(g), wy(0) + 14);
+  }
+  ctx.textAlign = 'right';
+  for (let g = 0; g <= by; g += 100) {
+    ctx.fillText(g, wx(0) - 6, wy(g) + 3);
+  }
+
+  // hazards
+  for (const hz of data.world.hazards) {
+    const cx = wx(hz.center.x), cy = wy(hz.center.y), cr = wr(hz.radius);
+    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, cr);
+    grad.addColorStop(0, `rgba(244,88,50,${0.3 * hz.severity})`);
+    grad.addColorStop(0.5, `rgba(244,88,50,${0.12 * hz.severity})`);
+    grad.addColorStop(1, 'rgba(244,88,50,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(cx, cy, cr, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = `rgba(244,88,50,${0.4 * hz.severity})`;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath(); ctx.arc(cx, cy, cr, 0, Math.PI*2); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = `rgba(244,88,50,${0.6 * hz.severity})`;
+    ctx.font = 'bold 11px DM Mono';
+    ctx.textAlign = 'center';
+    ctx.fillText(hz.id + ' (sev ' + hz.severity + ')', cx, cy + 4);
+  }
+
+  // obstacles
+  for (const ob of data.world.obstacles) {
+    const ox = wx(ob.min_corner.x);
+    const oy = wy(ob.max_corner.y);
+    const ow = wx(ob.max_corner.x) - wx(ob.min_corner.x);
+    const oh = wy(ob.min_corner.y) - wy(ob.max_corner.y);
+    ctx.fillStyle = 'rgba(90,98,117,0.2)';
+    ctx.fillRect(ox, oy, ow, oh);
+    ctx.strokeStyle = 'rgba(90,98,117,0.5)';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(ox, oy, ow, oh);
+    // hatch pattern
+    ctx.save();
+    ctx.beginPath(); ctx.rect(ox, oy, ow, oh); ctx.clip();
+    ctx.strokeStyle = 'rgba(90,98,117,0.15)';
+    ctx.lineWidth = 1;
+    for (let d = -Math.max(ow,oh); d < Math.max(ow,oh)*2; d += 8) {
+      ctx.beginPath(); ctx.moveTo(ox + d, oy); ctx.lineTo(ox + d - oh, oy + oh); ctx.stroke();
+    }
+    ctx.restore();
+    ctx.fillStyle = 'rgba(200,205,216,0.5)';
+    ctx.font = 'bold 11px DM Mono';
+    ctx.textAlign = 'center';
+    ctx.fillText(ob.id, ox + ow/2, oy + oh/2 + 4);
+  }
+
+  // base station
+  const bs = data.world.base_station;
+  ctx.beginPath();
+  ctx.arc(wx(bs.position.x), wy(bs.position.y), wr(bs.recharge_radius), 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(88,166,244,0.08)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(88,166,244,0.4)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([4,4]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#58a6f4';
+  ctx.beginPath(); ctx.arc(wx(bs.position.x), wy(bs.position.y), 5, 0, Math.PI*2); ctx.fill();
+  ctx.font = 'bold 11px DM Mono';
+  ctx.textAlign = 'center';
+  ctx.fillText('BASE', wx(bs.position.x), wy(bs.position.y) - 12);
+
+  // targets
+  for (const tgt of data.world.targets) {
+    const delivered = isTargetDeliveredAtFrame(tgt.id);
+    const tx = wx(tgt.position.x), ty = wy(tgt.position.y);
+    ctx.beginPath();
+    ctx.arc(tx, ty, wr(tgt.delivery_radius), 0, Math.PI*2);
+    ctx.fillStyle = delivered ? 'rgba(74,230,138,0.08)' : 'rgba(244,163,88,0.08)';
+    ctx.fill();
+    ctx.strokeStyle = delivered ? 'rgba(74,230,138,0.35)' : 'rgba(244,163,88,0.35)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3,3]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    const tsz = 4 + tgt.urgency * 4;
+    ctx.fillStyle = delivered ? '#4ae68a' : '#f4a358';
+    ctx.beginPath();
+    ctx.moveTo(tx, ty - tsz);
+    ctx.lineTo(tx + tsz * 0.866, ty + tsz * 0.5);
+    ctx.lineTo(tx - tsz * 0.866, ty + tsz * 0.5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.font = 'bold 11px DM Mono';
+    ctx.textAlign = 'center';
+    const label = delivered ? tgt.id + ' \u2713' : tgt.id + ' (urg ' + tgt.urgency + ')';
+    ctx.fillText(label, tx, ty - tsz - 6);
+  }
+
+  // flight trail
+  if (data.trace.length > 1 && currentFrame > 0) {
+    for (let i = 1; i <= currentFrame && i < data.trace.length; i++) {
+      const p0 = data.trace[i-1];
+      const p1 = data.trace[i];
+      const progress = i / currentFrame;
+      const alpha = 0.12 + 0.88 * progress;
+      let color;
+      if (p1.events?.some(e => e === 'collision')) {
+        color = `rgba(244,88,102,${alpha})`;
+      } else if (p1.events?.some(e => e.startsWith('hazard'))) {
+        color = `rgba(244,163,88,${alpha})`;
+      } else if (p1.events?.some(e => e.startsWith('delivered'))) {
+        color = `rgba(74,230,138,${alpha})`;
+      } else {
+        color = `rgba(200,205,216,${alpha * 0.5})`;
+      }
+      ctx.beginPath();
+      ctx.moveTo(wx(p0.position.x), wy(p0.position.y));
+      ctx.lineTo(wx(p1.position.x), wy(p1.position.y));
+      ctx.strokeStyle = color;
+      ctx.lineWidth = (p1.events?.length > 0 && !(p1.events.length === 1 && p1.events[0] === 'reset')) ? 2.5 : 1.5;
+      ctx.stroke();
+    }
+
+    // event markers
+    for (let i = 0; i <= currentFrame && i < data.trace.length; i++) {
+      const p = data.trace[i];
+      if (!p.events || p.events.length === 0) continue;
+      const px = wx(p.position.x), py = wy(p.position.y);
+      for (const ev of p.events) {
+        if (ev === 'reset') continue;
+        if (ev.startsWith('delivered')) {
+          ctx.fillStyle = '#4ae68a';
+          ctx.strokeStyle = '#0c0e13';
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+        } else if (ev === 'collision') {
+          ctx.strokeStyle = '#f45866'; ctx.lineWidth = 2.5;
+          ctx.beginPath(); ctx.moveTo(px-6,py-6); ctx.lineTo(px+6,py+6); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(px+6,py-6); ctx.lineTo(px-6,py+6); ctx.stroke();
+          ctx.beginPath(); ctx.arc(px, py, 10, 0, Math.PI*2);
+          ctx.strokeStyle = 'rgba(244,88,102,0.4)'; ctx.lineWidth = 1.5; ctx.stroke();
+        } else if (ev === 'success') {
+          ctx.strokeStyle = '#58a6f4'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.arc(px, py, 10, 0, Math.PI*2); ctx.stroke();
+        } else if (ev === 'battery_dead') {
+          ctx.fillStyle = '#f45866';
+          ctx.font = 'bold 14px DM Mono';
+          ctx.textAlign = 'center';
+          ctx.fillText('\u26A0', px, py - 12);
+        }
+      }
+    }
+  }
+
+  // drone
+  if (data.trace[currentFrame]) {
+    const dp = data.trace[currentFrame].position;
+    const px = wx(dp.x), py = wy(dp.y);
+    const glow = ctx.createRadialGradient(px, py, 0, px, py, 16);
+    glow.addColorStop(0, 'rgba(74,230,138,0.4)');
+    glow.addColorStop(1, 'rgba(74,230,138,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(px, py, 16, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#4ae68a';
+    ctx.beginPath(); ctx.arc(px, py, 4, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#4ae68a';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(px, py, 7, 0, Math.PI*2); ctx.stroke();
+    // altitude indicator
+    const alt = dp.z || 0;
+    if (alt > 0) {
+      ctx.fillStyle = 'rgba(74,230,138,0.6)';
+      ctx.font = '9px DM Mono';
+      ctx.textAlign = 'left';
+      ctx.fillText('z=' + alt.toFixed(1), px + 12, py - 2);
+    }
+  }
+
+  // scale
+  ctx.fillStyle = 'rgba(90,98,117,0.5)';
+  ctx.font = '10px DM Mono';
+  ctx.textAlign = 'right';
+  ctx.fillText(bx + 'm \u00d7 ' + by + 'm', sz - 10, sz - 8);
+}
+
+function updateUI() {
+  if (!data) return;
+  const s = data.summary;
+  document.getElementById('s-steps').textContent = s.total_steps;
+  document.getElementById('s-reward').textContent = s.cumulative_reward.toFixed(1);
+  document.getElementById('s-reward').style.color = s.cumulative_reward >= 0 ? 'var(--accent)' : 'var(--danger)';
+  document.getElementById('s-battery').textContent = s.final_battery.toFixed(1) + '%';
+  document.getElementById('s-battery').style.color = s.final_battery > 30 ? 'var(--accent)' : s.final_battery > 10 ? 'var(--warn)' : 'var(--danger)';
+  const status = s.success ? 'SUCCESS' : s.alive ? 'TIMEOUT' : 'DEAD';
+  document.getElementById('s-status').textContent = status;
+  document.getElementById('s-status').style.color = s.success ? 'var(--accent)' : s.alive ? 'var(--warn)' : 'var(--danger)';
+  document.getElementById('s-delivered').textContent = s.delivered.length > 0 ? s.delivered.join(', ') : 'none';
+
+  const slider = document.getElementById('step-slider');
+  slider.max = data.trace.length - 1;
+  slider.value = currentFrame;
+  document.getElementById('step-display').textContent = currentFrame + ' / ' + (data.trace.length - 1);
+
+  const f = data.trace[currentFrame];
+  if (f) {
+    document.getElementById('f-pos').textContent = f.position.x.toFixed(0) + ', ' + f.position.y.toFixed(0) + ', ' + f.position.z.toFixed(0);
+    document.getElementById('f-bat').textContent = f.battery.toFixed(1);
+    document.getElementById('f-bat').style.color = f.battery > 30 ? 'var(--accent)' : f.battery > 10 ? 'var(--warn)' : 'var(--danger)';
+    document.getElementById('f-rew').textContent = f.reward >= 0 ? '+' + f.reward.toFixed(2) : f.reward.toFixed(2);
+    document.getElementById('f-rew').style.color = f.reward >= 0 ? 'var(--accent)' : 'var(--danger)';
+    document.getElementById('f-cumr').textContent = f.cumulative_reward.toFixed(1);
+    document.getElementById('f-cumr').style.color = f.cumulative_reward >= 0 ? 'var(--accent)' : 'var(--danger)';
+    updateObsPanel(f);
+  }
+}
+
+function updateObsPanel(frame) {
+  const panel = document.getElementById('obs-panel');
+  const stepLabel = document.getElementById('obs-step');
+  stepLabel.textContent = frame.step;
+  if (frame.observation && Object.keys(frame.observation).length > 0) {
+    panel.textContent = formatObs(frame.observation, 0);
+  } else {
+    panel.textContent = '(no observation data in this trace)';
+  }
+}
+
+function formatObs(obj, indent) {
+  const pad = '  '.repeat(indent);
+  if (Array.isArray(obj)) {
+    if (obj.length === 0) return '[]';
+    const items = obj.map((v, i) => {
+      if (typeof v === 'object' && v !== null) {
+        return pad + '  [' + i + ']:\n' + formatObs(v, indent + 2);
+      }
+      return pad + '  ' + JSON.stringify(v);
+    });
+    return items.join('\n');
+  }
+  if (typeof obj === 'object' && obj !== null) {
+    const lines = [];
+    for (const [k, v] of Object.entries(obj)) {
+      if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
+        const inner = Object.entries(v);
+        if (inner.length <= 4 && inner.every(([,val]) => typeof val !== 'object')) {
+          lines.push(pad + k + ': ' + inner.map(([ik,iv]) => ik + '=' + fmtVal(iv)).join('  '));
+        } else {
+          lines.push(pad + k + ':');
+          lines.push(formatObs(v, indent + 1));
+        }
+      } else if (Array.isArray(v)) {
+        lines.push(pad + k + ': (' + v.length + ' items)');
+        lines.push(formatObs(v, indent + 1));
+      } else {
+        lines.push(pad + k + ': ' + fmtVal(v));
+      }
+    }
+    return lines.join('\n');
+  }
+  return pad + JSON.stringify(obj);
+}
+
+function fmtVal(v) {
+  if (typeof v === 'number') return v % 1 === 0 ? v.toString() : v.toFixed(4);
+  if (typeof v === 'boolean') return v ? 'true' : 'false';
+  return JSON.stringify(v);
+}
+
+function buildEventLog() {
+  const log = document.getElementById('event-log');
+  log.innerHTML = '';
+  if (!data) return;
+  for (let i = 0; i < data.trace.length; i++) {
+    const t = data.trace[i];
+    if (!t.events || t.events.length === 0 || (t.events.length === 1 && t.events[0] === 'reset')) continue;
+    for (const ev of t.events) {
+      if (ev === 'reset') continue;
+      const div = document.createElement('div');
+      let cls = '';
+      if (ev.startsWith('delivered')) cls = 'ev-delivery';
+      else if (ev === 'collision' || ev === 'battery_dead') cls = 'ev-collision';
+      else if (ev.startsWith('hazard')) cls = 'ev-hazard';
+      else if (ev === 'success') cls = 'ev-success';
+      div.className = 'ev ' + cls;
+      div.textContent = '[step ' + i + '] ' + ev;
+      div.style.cursor = 'pointer';
+      const frame = i;
+      div.addEventListener('click', () => { stopPlay(); currentFrame = frame; updateUI(); draw(); });
+      log.appendChild(div);
+    }
+  }
+}
+
+function loadTrace(obj) {
+  data = obj;
+  currentFrame = data.trace.length - 1;
+  stopPlay();
+  resizeCanvas();
+  updateUI();
+  buildEventLog();
+  draw();
+}
+
+function startPlay() {
+  if (!data) return;
+  playing = true;
+  document.getElementById('btn-play').textContent = 'Pause';
+  if (currentFrame >= data.trace.length - 1) currentFrame = 0;
+  playInterval = setInterval(() => {
+    if (currentFrame < data.trace.length - 1) {
+      currentFrame++;
+      updateUI();
+      draw();
+    } else {
+      stopPlay();
+    }
+  }, 1000 / speed);
+}
+
+function stopPlay() {
+  playing = false;
+  document.getElementById('btn-play').textContent = 'Play';
+  if (playInterval) { clearInterval(playInterval); playInterval = null; }
+}
+
+document.getElementById('btn-play').addEventListener('click', () => {
+  if (playing) stopPlay(); else startPlay();
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  stopPlay();
+  currentFrame = 0;
+  updateUI();
+  draw();
+});
+
+document.getElementById('step-slider').addEventListener('input', (e) => {
+  stopPlay();
+  currentFrame = parseInt(e.target.value);
+  updateUI();
+  draw();
+});
+
+document.getElementById('speed-slider').addEventListener('input', (e) => {
+  speed = parseInt(e.target.value);
+  document.getElementById('speed-display').textContent = speed + 'x';
+  if (playing) { stopPlay(); startPlay(); }
+});
+
+document.getElementById('file-input').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try { loadTrace(JSON.parse(ev.target.result)); } catch(err) { alert('Invalid JSON: ' + err.message); }
+  };
+  reader.readAsText(file);
+});
+
+document.addEventListener('keydown', (e) => {
+  if (!data) return;
+  if (e.key === ' ' || e.key === 'k') { e.preventDefault(); if (playing) stopPlay(); else startPlay(); }
+  if (e.key === 'ArrowRight' || e.key === 'l') { e.preventDefault(); stopPlay(); currentFrame = Math.min(currentFrame + 1, data.trace.length - 1); updateUI(); draw(); }
+  if (e.key === 'ArrowLeft' || e.key === 'j') { e.preventDefault(); stopPlay(); currentFrame = Math.max(currentFrame - 1, 0); updateUI(); draw(); }
+  if (e.key === 'Home' || e.key === '0') { e.preventDefault(); stopPlay(); currentFrame = 0; updateUI(); draw(); }
+  if (e.key === 'End') { e.preventDefault(); stopPlay(); currentFrame = data.trace.length - 1; updateUI(); draw(); }
+});
+
+// built-in traces
+const builtinDiv = document.getElementById('builtin-traces');
+for (const name of BUILTIN_TRACES) {
+  const btn = document.createElement('div');
+  btn.className = 'btn';
+  btn.textContent = name.replace('trace_','').replace('.json','');
+  btn.addEventListener('click', async () => {
+    try {
+      const resp = await fetch(name);
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      const json = await resp.json();
+      builtinDiv.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      loadTrace(json);
+    } catch(err) { alert('Could not load ' + name + '. Make sure it exists next to visualizer.html.\n\n' + err.message); }
+  });
+  builtinDiv.appendChild(btn);
+}
+
+// run simulation via API
+async function runSimulation(method) {
+  const status = document.getElementById('run-status');
+  const seedInput = document.getElementById('seed-input');
+  const seedVal = seedInput.value.trim();
+  const seed = seedVal === '' ? null : parseInt(seedVal);
+
+  status.textContent = 'Running ' + method + '...';
+  status.style.color = 'var(--warn)';
+
+  try {
+    const resp = await fetch('/api/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ method, seed, max_steps: 500 }),
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const json = await resp.json();
+    builtinDiv.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+    loadTrace(json);
+    const s = json.summary;
+    const statusText = s.success ? 'SUCCESS' : s.alive ? 'TIMEOUT' : 'DEAD';
+    status.textContent = method + ' done: ' + statusText + ' (' + s.total_steps + ' steps, reward ' + s.cumulative_reward.toFixed(1) + ')';
+    status.style.color = s.success ? 'var(--accent)' : s.alive ? 'var(--warn)' : 'var(--danger)';
+  } catch (err) {
+    status.textContent = 'Error: ' + err.message + ' (is serve.py running?)';
+    status.style.color = 'var(--danger)';
+  }
+}
+
+document.getElementById('btn-run-heuristic').addEventListener('click', () => runSimulation('heuristic'));
+document.getElementById('btn-run-random').addEventListener('click', () => runSimulation('random'));
+
+document.getElementById('seed-input').addEventListener('input', (e) => {
+  document.getElementById('seed-display').textContent = e.target.value.trim() || 'random';
+});
+</script>
+</body>
+</html>

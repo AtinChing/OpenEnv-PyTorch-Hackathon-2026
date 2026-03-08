@@ -1,0 +1,114 @@
+{
+  "base_station": {
+    "position": {
+      "x": 50.0,
+      "y": 50.0,
+      "z": 0.0
+    },
+    "recharge_radius": 20.0
+  },
+  "drone": {
+    "position": {
+      "x": 77.5,
+      "y": 63.75,
+      "z": 6.875
+    },
+    "velocity": {
+      "x": 10.0,
+      "y": 5.0,
+      "z": 2.5
+    },
+    "battery": 98.0898,
+    "carrying_payload": true,
+    "alive": true
+  },
+  "targets": [
+    {
+      "id": "T1",
+      "position": {
+        "x": 200.0,
+        "y": 80.0,
+        "z": 15.0
+      },
+      "urgency": 0.6,
+      "delivered": false,
+      "delivery_radius": 15.0
+    },
+    {
+      "id": "T2",
+      "position": {
+        "x": 420.0,
+        "y": 320.0,
+        "z": 25.0
+      },
+      "urgency": 1.0,
+      "delivered": false,
+      "delivery_radius": 15.0
+    },
+    {
+      "id": "T3",
+      "position": {
+        "x": 150.0,
+        "y": 480.0,
+        "z": 10.0
+      },
+      "urgency": 0.8,
+      "delivered": false,
+      "delivery_radius": 15.0
+    }
+  ],
+  "hazards": [
+    {
+      "id": "H1",
+      "center": {
+        "x": 380.0,
+        "y": 300.0,
+        "z": 30.0
+      },
+      "radius": 70.0,
+      "severity": 0.9
+    },
+    {
+      "id": "H2",
+      "center": {
+        "x": 120.0,
+        "y": 350.0,
+        "z": 20.0
+      },
+      "radius": 50.0,
+      "severity": 0.7
+    }
+  ],
+  "obstacles": [
+    {
+      "id": "O1",
+      "min_corner": {
+        "x": 250.0,
+        "y": 150.0,
+        "z": 0.0
+      },
+      "max_corner": {
+        "x": 300.0,
+        "y": 250.0,
+        "z": 60.0
+      }
+    },
+    {
+      "id": "O2",
+      "min_corner": {
+        "x": 80.0,
+        "y": 250.0,
+        "z": 0.0
+      },
+      "max_corner": {
+        "x": 160.0,
+        "y": 300.0,
+        "z": 45.0
+      }
+    }
+  ],
+  "step": 10,
+  "max_steps": 500,
+  "cumulative_reward": -0.1369,
+  "done": false
+}

@@ -1,0 +1,2760 @@
+{
+  "world": {
+    "bounds": {
+      "x": 600.0,
+      "y": 600.0,
+      "z": 100.0
+    },
+    "base_station": {
+      "position": {
+        "x": 50.0,
+        "y": 50.0,
+        "z": 0.0
+      },
+      "recharge_radius": 20.0
+    },
+    "targets": [
+      {
+        "id": "T1",
+        "position": {
+          "x": 200.0,
+          "y": 80.0,
+          "z": 15.0
+        },
+        "urgency": 0.6,
+        "delivered": true,
+        "delivery_radius": 15.0
+      },
+      {
+        "id": "T2",
+        "position": {
+          "x": 420.0,
+          "y": 320.0,
+          "z": 25.0
+        },
+        "urgency": 1.0,
+        "delivered": false,
+        "delivery_radius": 15.0
+      },
+      {
+        "id": "T3",
+        "position": {
+          "x": 150.0,
+          "y": 480.0,
+          "z": 10.0
+        },
+        "urgency": 0.8,
+        "delivered": false,
+        "delivery_radius": 15.0
+      }
+    ],
+    "hazards": [
+      {
+        "id": "H1",
+        "center": {
+          "x": 380.0,
+          "y": 300.0,
+          "z": 30.0
+        },
+        "radius": 70.0,
+        "severity": 0.9
+      },
+      {
+        "id": "H2",
+        "center": {
+          "x": 120.0,
+          "y": 350.0,
+          "z": 20.0
+        },
+        "radius": 50.0,
+        "severity": 0.7
+      }
+    ],
+    "obstacles": [
+      {
+        "id": "O1",
+        "min_corner": {
+          "x": 250.0,
+          "y": 150.0,
+          "z": 0.0
+        },
+        "max_corner": {
+          "x": 300.0,
+          "y": 250.0,
+          "z": 60.0
+        }
+      },
+      {
+        "id": "O2",
+        "min_corner": {
+          "x": 80.0,
+          "y": 250.0,
+          "z": 0.0
+        },
+        "max_corner": {
+          "x": 160.0,
+          "y": 300.0,
+          "z": 45.0
+        }
+      }
+    ]
+  },
+  "trace": [
+    {
+      "step": 0,
+      "position": {
+        "x": 50.0,
+        "y": 50.0,
+        "z": 0.0
+      },
+      "velocity": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "battery": 100.0,
+      "reward": 0.0,
+      "cumulative_reward": 0.0,
+      "events": [
+        "reset"
+      ],
+      "observation": {
+        "drone_position": {
+          "x": 50.0,
+          "y": 50.0,
+          "z": 0.0
+        },
+        "drone_velocity": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "battery": 100.0,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": 150.0,
+              "y": 30.0,
+              "z": 15.0
+            },
+            "urgency": 0.6,
+            "delivered": false
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 370.0,
+              "y": 270.0,
+              "z": 25.0
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": 100.0,
+              "y": 430.0,
+              "z": 10.0
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 0,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 1,
+      "position": {
+        "x": 51.2199,
+        "y": 50.244,
+        "z": 0.122
+      },
+      "velocity": {
+        "x": 2.4398,
+        "y": 0.488,
+        "z": 0.244
+      },
+      "battery": 99.9302,
+      "reward": -0.0625,
+      "cumulative_reward": -0.0625,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 51.2199,
+          "y": 50.244,
+          "z": 0.122
+        },
+        "drone_velocity": {
+          "x": 2.4398,
+          "y": 0.488,
+          "z": 0.244
+        },
+        "battery": 99.9302,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": 148.7801,
+              "y": 29.756,
+              "z": 14.878
+            },
+            "urgency": 0.6,
+            "delivered": false
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 368.7801,
+              "y": 269.756,
+              "z": 24.878
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": 98.7801,
+              "y": 429.756,
+              "z": 9.878
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 1,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 2,
+      "position": {
+        "x": 53.6596,
+        "y": 50.7319,
+        "z": 0.366
+      },
+      "velocity": {
+        "x": 4.8795,
+        "y": 0.9759,
+        "z": 0.4879
+      },
+      "battery": 99.8007,
+      "reward": -0.025,
+      "cumulative_reward": -0.0875,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 53.6596,
+          "y": 50.7319,
+          "z": 0.366
+        },
+        "drone_velocity": {
+          "x": 4.8795,
+          "y": 0.9759,
+          "z": 0.4879
+        },
+        "battery": 99.8007,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": 146.3404,
+              "y": 29.2681,
+              "z": 14.634
+            },
+            "urgency": 0.6,
+            "delivered": false
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 366.3404,
+              "y": 269.2681,
+              "z": 24.634
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": 96.3404,
+              "y": 429.2681,
+              "z": 9.634
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 2,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 3,
+      "position": {
+        "x": 57.3193,
+        "y": 51.4638,
+        "z": 0.7319
+      },
+      "velocity": {
+        "x": 7.3193,
+        "y": 1.4638,
+        "z": 0.7319
+      },
+      "battery": 99.6114,
+      "reward": 0.0125,
+      "cumulative_reward": -0.075,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 57.3193,
+          "y": 51.4638,
+          "z": 0.7319
+        },
+        "drone_velocity": {
+          "x": 7.3193,
+          "y": 1.4638,
+          "z": 0.7319
+        },
+        "battery": 99.6114,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": 142.6807,
+              "y": 28.5362,
+              "z": 14.2681
+            },
+            "urgency": 0.6,
+            "delivered": false
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 362.6807,
+              "y": 268.5362,
+              "z": 24.2681
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": 92.6807,
+              "y": 428.5362,
+              "z": 9.2681
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 3,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 4,
+      "position": {
+        "x": 62.1988,
+        "y": 52.4397,
+        "z": 1.2199
+      },
+      "velocity": {
+        "x": 9.759,
+        "y": 1.9518,
+        "z": 0.9759
+      },
+      "battery": 99.3624,
+      "reward": 0.05,
+      "cumulative_reward": -0.025,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 62.1988,
+          "y": 52.4397,
+          "z": 1.2199
+        },
+        "drone_velocity": {
+          "x": 9.759,
+          "y": 1.9518,
+          "z": 0.9759
+        },
+        "battery": 99.3624,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": 137.8012,
+              "y": 27.5603,
+              "z": 13.7801
+            },
+            "urgency": 0.6,
+            "delivered": false
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 357.8012,
+              "y": 267.5603,
+              "z": 23.7801
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": 87.8012,
+              "y": 427.5603,
+              "z": 8.7801
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 4,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 5,
+      "position": {
+        "x": 68.2981,
+        "y": 53.6596,
+        "z": 1.8298
+      },
+      "velocity": {
+        "x": 12.1987,
+        "y": 2.4398,
+        "z": 1.2199
+      },
+      "battery": 99.0536,
+      "reward": 0.0875,
+      "cumulative_reward": 0.0625,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 68.2981,
+          "y": 53.6596,
+          "z": 1.8298
+        },
+        "drone_velocity": {
+          "x": 12.1987,
+          "y": 2.4398,
+          "z": 1.2199
+        },
+        "battery": 99.0536,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": 131.7019,
+              "y": 26.3404,
+              "z": 13.1702
+            },
+            "urgency": 0.6,
+            "delivered": false
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 351.7019,
+              "y": 266.3404,
+              "z": 23.1702
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": 81.7019,
+              "y": 426.3404,
+              "z": 8.1702
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 5,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 6,
+      "position": {
+        "x": 75.6174,
+        "y": 55.1235,
+        "z": 2.5617
+      },
+      "velocity": {
+        "x": 14.6385,
+        "y": 2.9277,
+        "z": 1.4639
+      },
+      "battery": 98.6851,
+      "reward": 0.125,
+      "cumulative_reward": 0.1875,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 75.6174,
+          "y": 55.1235,
+          "z": 2.5617
+        },
+        "drone_velocity": {
+          "x": 14.6385,
+          "y": 2.9277,
+          "z": 1.4639
+        },
+        "battery": 98.6851,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": 124.3826,
+              "y": 24.8765,
+              "z": 12.4383
+            },
+            "urgency": 0.6,
+            "delivered": false
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 344.3826,
+              "y": 264.8765,
+              "z": 22.4383
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": 74.3826,
+              "y": 424.8765,
+              "z": 7.4383
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 6,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 7,
+      "position": {
+        "x": 82.9366,
+        "y": 56.5873,
+        "z": 3.2937
+      },
+      "velocity": {
+        "x": 14.6385,
+        "y": 2.9277,
+        "z": 1.4638
+      },
+      "battery": 98.3165,
+      "reward": 0.125,
+      "cumulative_reward": 0.3125,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 82.9366,
+          "y": 56.5873,
+          "z": 3.2937
+        },
+        "drone_velocity": {
+          "x": 14.6385,
+          "y": 2.9277,
+          "z": 1.4638
+        },
+        "battery": 98.3165,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": 117.0634,
+              "y": 23.4127,
+              "z": 11.7063
+            },
+            "urgency": 0.6,
+            "delivered": false
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 337.0634,
+              "y": 263.4127,
+              "z": 21.7063
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": 67.0634,
+              "y": 423.4127,
+              "z": 6.7063
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 7,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 8,
+      "position": {
+        "x": 90.2559,
+        "y": 58.0512,
+        "z": 4.0256
+      },
+      "velocity": {
+        "x": 14.6385,
+        "y": 2.9277,
+        "z": 1.4639
+      },
+      "battery": 97.948,
+      "reward": 0.125,
+      "cumulative_reward": 0.4375,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 90.2559,
+          "y": 58.0512,
+          "z": 4.0256
+        },
+        "drone_velocity": {
+          "x": 14.6385,
+          "y": 2.9277,
+          "z": 1.4639
+        },
+        "battery": 97.948,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": 109.7441,
+              "y": 21.9488,
+              "z": 10.9744
+            },
+            "urgency": 0.6,
+            "delivered": false
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 329.7441,
+              "y": 261.9488,
+              "z": 20.9744
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": 59.7441,
+              "y": 421.9488,
+              "z": 5.9744
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 8,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 9,
+      "position": {
+        "x": 97.5751,
+        "y": 59.515,
+        "z": 4.7575
+      },
+      "velocity": {
+        "x": 14.6385,
+        "y": 2.9277,
+        "z": 1.4638
+      },
+      "battery": 97.5794,
+      "reward": 0.125,
+      "cumulative_reward": 0.5625,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 97.5751,
+          "y": 59.515,
+          "z": 4.7575
+        },
+        "drone_velocity": {
+          "x": 14.6385,
+          "y": 2.9277,
+          "z": 1.4638
+        },
+        "battery": 97.5794,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": 102.4249,
+              "y": 20.485,
+              "z": 10.2425
+            },
+            "urgency": 0.6,
+            "delivered": false
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 322.4249,
+              "y": 260.485,
+              "z": 20.2425
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": 52.4249,
+              "y": 420.485,
+              "z": 5.2425
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 9,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 10,
+      "position": {
+        "x": 104.8944,
+        "y": 60.9789,
+        "z": 5.4894
+      },
+      "velocity": {
+        "x": 14.6385,
+        "y": 2.9277,
+        "z": 1.4639
+      },
+      "battery": 97.2108,
+      "reward": 0.125,
+      "cumulative_reward": 0.6875,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 104.8944,
+          "y": 60.9789,
+          "z": 5.4894
+        },
+        "drone_velocity": {
+          "x": 14.6385,
+          "y": 2.9277,
+          "z": 1.4639
+        },
+        "battery": 97.2108,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": 95.1056,
+              "y": 19.0211,
+              "z": 9.5106
+            },
+            "urgency": 0.6,
+            "delivered": false
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 315.1056,
+              "y": 259.0211,
+              "z": 19.5106
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": 45.1056,
+              "y": 419.0211,
+              "z": 4.5106
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 10,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 11,
+      "position": {
+        "x": 112.2136,
+        "y": 62.4427,
+        "z": 6.2214
+      },
+      "velocity": {
+        "x": 14.6385,
+        "y": 2.9277,
+        "z": 1.4638
+      },
+      "battery": 96.8423,
+      "reward": 0.125,
+      "cumulative_reward": 0.8125,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 112.2136,
+          "y": 62.4427,
+          "z": 6.2214
+        },
+        "drone_velocity": {
+          "x": 14.6385,
+          "y": 2.9277,
+          "z": 1.4638
+        },
+        "battery": 96.8423,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": 87.7864,
+              "y": 17.5573,
+              "z": 8.7786
+            },
+            "urgency": 0.6,
+            "delivered": false
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 307.7864,
+              "y": 257.5573,
+              "z": 18.7786
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": 37.7864,
+              "y": 417.5573,
+              "z": 3.7786
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 11,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 12,
+      "position": {
+        "x": 119.5329,
+        "y": 63.9066,
+        "z": 6.9533
+      },
+      "velocity": {
+        "x": 14.6385,
+        "y": 2.9277,
+        "z": 1.4639
+      },
+      "battery": 96.4737,
+      "reward": 0.125,
+      "cumulative_reward": 0.9375,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 119.5329,
+          "y": 63.9066,
+          "z": 6.9533
+        },
+        "drone_velocity": {
+          "x": 14.6385,
+          "y": 2.9277,
+          "z": 1.4639
+        },
+        "battery": 96.4737,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": 80.4671,
+              "y": 16.0934,
+              "z": 8.0467
+            },
+            "urgency": 0.6,
+            "delivered": false
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 300.4671,
+              "y": 256.0934,
+              "z": 18.0467
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": 30.4671,
+              "y": 416.0934,
+              "z": 3.0467
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 12,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 13,
+      "position": {
+        "x": 126.8521,
+        "y": 65.3704,
+        "z": 7.6852
+      },
+      "velocity": {
+        "x": 14.6385,
+        "y": 2.9277,
+        "z": 1.4638
+      },
+      "battery": 96.1052,
+      "reward": 0.125,
+      "cumulative_reward": 1.0625,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 126.8521,
+          "y": 65.3704,
+          "z": 7.6852
+        },
+        "drone_velocity": {
+          "x": 14.6385,
+          "y": 2.9277,
+          "z": 1.4638
+        },
+        "battery": 96.1052,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": 73.1479,
+              "y": 14.6296,
+              "z": 7.3148
+            },
+            "urgency": 0.6,
+            "delivered": false
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 293.1479,
+              "y": 254.6296,
+              "z": 17.3148
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": 23.1479,
+              "y": 414.6296,
+              "z": 2.3148
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 13,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 14,
+      "position": {
+        "x": 134.1714,
+        "y": 66.8343,
+        "z": 8.4171
+      },
+      "velocity": {
+        "x": 14.6385,
+        "y": 2.9277,
+        "z": 1.4639
+      },
+      "battery": 95.7366,
+      "reward": 0.125,
+      "cumulative_reward": 1.1875,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 134.1714,
+          "y": 66.8343,
+          "z": 8.4171
+        },
+        "drone_velocity": {
+          "x": 14.6385,
+          "y": 2.9277,
+          "z": 1.4639
+        },
+        "battery": 95.7366,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": 65.8286,
+              "y": 13.1657,
+              "z": 6.5829
+            },
+            "urgency": 0.6,
+            "delivered": false
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 285.8286,
+              "y": 253.1657,
+              "z": 16.5829
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": 15.8286,
+              "y": 413.1657,
+              "z": 1.5829
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 14,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 15,
+      "position": {
+        "x": 141.4906,
+        "y": 68.2981,
+        "z": 9.1491
+      },
+      "velocity": {
+        "x": 14.6385,
+        "y": 2.9277,
+        "z": 1.4638
+      },
+      "battery": 95.3681,
+      "reward": 0.125,
+      "cumulative_reward": 1.3125,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 141.4906,
+          "y": 68.2981,
+          "z": 9.1491
+        },
+        "drone_velocity": {
+          "x": 14.6385,
+          "y": 2.9277,
+          "z": 1.4638
+        },
+        "battery": 95.3681,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": 58.5094,
+              "y": 11.7019,
+              "z": 5.8509
+            },
+            "urgency": 0.6,
+            "delivered": false
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 278.5094,
+              "y": 251.7019,
+              "z": 15.8509
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": 8.5094,
+              "y": 411.7019,
+              "z": 0.8509
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 15,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 16,
+      "position": {
+        "x": 148.8099,
+        "y": 69.762,
+        "z": 9.881
+      },
+      "velocity": {
+        "x": 14.6385,
+        "y": 2.9277,
+        "z": 1.4639
+      },
+      "battery": 94.9995,
+      "reward": 0.125,
+      "cumulative_reward": 1.4375,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 148.8099,
+          "y": 69.762,
+          "z": 9.881
+        },
+        "drone_velocity": {
+          "x": 14.6385,
+          "y": 2.9277,
+          "z": 1.4639
+        },
+        "battery": 94.9995,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": 51.1901,
+              "y": 10.238,
+              "z": 5.119
+            },
+            "urgency": 0.6,
+            "delivered": false
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 271.1901,
+              "y": 250.238,
+              "z": 15.119
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": 1.1901,
+              "y": 410.238,
+              "z": 0.119
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 16,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 17,
+      "position": {
+        "x": 156.1291,
+        "y": 71.2258,
+        "z": 10.6129
+      },
+      "velocity": {
+        "x": 14.6385,
+        "y": 2.9277,
+        "z": 1.4638
+      },
+      "battery": 94.631,
+      "reward": 0.125,
+      "cumulative_reward": 1.5625,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 156.1291,
+          "y": 71.2258,
+          "z": 10.6129
+        },
+        "drone_velocity": {
+          "x": 14.6385,
+          "y": 2.9277,
+          "z": 1.4638
+        },
+        "battery": 94.631,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": 43.8709,
+              "y": 8.7742,
+              "z": 4.3871
+            },
+            "urgency": 0.6,
+            "delivered": false
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 263.8709,
+              "y": 248.7742,
+              "z": 14.3871
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": -6.1291,
+              "y": 408.7742,
+              "z": -0.6129
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 17,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 18,
+      "position": {
+        "x": 163.4484,
+        "y": 72.6897,
+        "z": 11.3448
+      },
+      "velocity": {
+        "x": 14.6385,
+        "y": 2.9277,
+        "z": 1.4639
+      },
+      "battery": 94.2624,
+      "reward": 0.125,
+      "cumulative_reward": 1.6875,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 163.4484,
+          "y": 72.6897,
+          "z": 11.3448
+        },
+        "drone_velocity": {
+          "x": 14.6385,
+          "y": 2.9277,
+          "z": 1.4639
+        },
+        "battery": 94.2624,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": 36.5516,
+              "y": 7.3103,
+              "z": 3.6552
+            },
+            "urgency": 0.6,
+            "delivered": false
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 256.5516,
+              "y": 247.3103,
+              "z": 13.6552
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": -13.4484,
+              "y": 407.3103,
+              "z": -1.3448
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 18,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 19,
+      "position": {
+        "x": 170.5813,
+        "y": 74.1163,
+        "z": 12.0581
+      },
+      "velocity": {
+        "x": 14.2658,
+        "y": 2.8532,
+        "z": 1.4266
+      },
+      "battery": 93.903,
+      "reward": 0.1193,
+      "cumulative_reward": 1.8068,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 170.5813,
+          "y": 74.1163,
+          "z": 12.0581
+        },
+        "drone_velocity": {
+          "x": 14.2658,
+          "y": 2.8532,
+          "z": 1.4266
+        },
+        "battery": 93.903,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": 29.4187,
+              "y": 5.8837,
+              "z": 2.9419
+            },
+            "urgency": 0.6,
+            "delivered": false
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 249.4187,
+              "y": 245.8837,
+              "z": 12.9419
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": -20.5813,
+              "y": 405.8837,
+              "z": -2.0581
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 19,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 20,
+      "position": {
+        "x": 177.0675,
+        "y": 75.4135,
+        "z": 12.7067
+      },
+      "velocity": {
+        "x": 12.9723,
+        "y": 2.5944,
+        "z": 1.2972
+      },
+      "battery": 93.5752,
+      "reward": 0.0994,
+      "cumulative_reward": 1.9062,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 177.0675,
+          "y": 75.4135,
+          "z": 12.7067
+        },
+        "drone_velocity": {
+          "x": 12.9723,
+          "y": 2.5944,
+          "z": 1.2972
+        },
+        "battery": 93.5752,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": 22.9325,
+              "y": 4.5865,
+              "z": 2.2933
+            },
+            "urgency": 0.6,
+            "delivered": false
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 242.9325,
+              "y": 244.5865,
+              "z": 12.2933
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": -27.0675,
+              "y": 404.5865,
+              "z": -2.7067
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 20,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 21,
+      "position": {
+        "x": 182.6791,
+        "y": 76.5358,
+        "z": 13.2679
+      },
+      "velocity": {
+        "x": 11.2233,
+        "y": 2.2447,
+        "z": 1.1223
+      },
+      "battery": 93.2903,
+      "reward": 0.0725,
+      "cumulative_reward": 1.9787,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 182.6791,
+          "y": 76.5358,
+          "z": 13.2679
+        },
+        "drone_velocity": {
+          "x": 11.2233,
+          "y": 2.2447,
+          "z": 1.1223
+        },
+        "battery": 93.2903,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": 17.3209,
+              "y": 3.4642,
+              "z": 1.7321
+            },
+            "urgency": 0.6,
+            "delivered": false
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 237.3209,
+              "y": 243.4642,
+              "z": 11.7321
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": -32.6791,
+              "y": 403.4642,
+              "z": -3.2679
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 21,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 22,
+      "position": {
+        "x": 187.3452,
+        "y": 77.469,
+        "z": 13.7345
+      },
+      "velocity": {
+        "x": 9.3321,
+        "y": 1.8664,
+        "z": 0.9332
+      },
+      "battery": 93.0518,
+      "reward": 0.0434,
+      "cumulative_reward": 2.0221,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 187.3452,
+          "y": 77.469,
+          "z": 13.7345
+        },
+        "drone_velocity": {
+          "x": 9.3321,
+          "y": 1.8664,
+          "z": 0.9332
+        },
+        "battery": 93.0518,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": 12.6548,
+              "y": 2.531,
+              "z": 1.2655
+            },
+            "urgency": 0.6,
+            "delivered": false
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 232.6548,
+              "y": 242.531,
+              "z": 11.2655
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": -37.3452,
+              "y": 402.531,
+              "z": -3.7345
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 22,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 23,
+      "position": {
+        "x": 191.0939,
+        "y": 78.2188,
+        "z": 14.1094
+      },
+      "velocity": {
+        "x": 7.4975,
+        "y": 1.4995,
+        "z": 0.7498
+      },
+      "battery": 92.8581,
+      "reward": 143.8151,
+      "cumulative_reward": 145.8372,
+      "events": [
+        "delivered_T1"
+      ],
+      "observation": {
+        "drone_position": {
+          "x": 191.0939,
+          "y": 78.2188,
+          "z": 14.1094
+        },
+        "drone_velocity": {
+          "x": 7.4975,
+          "y": 1.4995,
+          "z": 0.7498
+        },
+        "battery": 92.8581,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": 8.9061,
+              "y": 1.7812,
+              "z": 0.8906
+            },
+            "urgency": 0.6,
+            "delivered": true
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 228.9061,
+              "y": 241.7812,
+              "z": 10.8906
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": -41.0939,
+              "y": 401.7812,
+              "z": -4.1094
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 23,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 24,
+      "position": {
+        "x": 195.6673,
+        "y": 79.9072,
+        "z": 14.5194
+      },
+      "velocity": {
+        "x": 9.1469,
+        "y": 3.3769,
+        "z": 0.82
+      },
+      "battery": 92.6196,
+      "reward": 0.0209,
+      "cumulative_reward": 145.8581,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 195.6673,
+          "y": 79.9072,
+          "z": 14.5194
+        },
+        "drone_velocity": {
+          "x": 9.1469,
+          "y": 3.3769,
+          "z": 0.82
+        },
+        "battery": 92.6196,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": 4.3327,
+              "y": 0.0928,
+              "z": 0.4806
+            },
+            "urgency": 0.6,
+            "delivered": true
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 224.3327,
+              "y": 240.0928,
+              "z": 10.4806
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": -45.6673,
+              "y": 400.0928,
+              "z": -4.5194
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 24,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 25,
+      "position": {
+        "x": 201.0584,
+        "y": 82.5406,
+        "z": 14.9633
+      },
+      "velocity": {
+        "x": 10.7821,
+        "y": 5.2667,
+        "z": 0.8878
+      },
+      "battery": 92.3335,
+      "reward": 0.0601,
+      "cumulative_reward": 145.9182,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 201.0584,
+          "y": 82.5406,
+          "z": 14.9633
+        },
+        "drone_velocity": {
+          "x": 10.7821,
+          "y": 5.2667,
+          "z": 0.8878
+        },
+        "battery": 92.3335,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": -1.0584,
+              "y": -2.5406,
+              "z": 0.0367
+            },
+            "urgency": 0.6,
+            "delivered": true
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 218.9416,
+              "y": 237.4594,
+              "z": 10.0367
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": -51.0584,
+              "y": 397.4594,
+              "z": -4.9633
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 25,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 26,
+      "position": {
+        "x": 207.2594,
+        "y": 86.1254,
+        "z": 15.4399
+      },
+      "velocity": {
+        "x": 12.402,
+        "y": 7.1697,
+        "z": 0.9531
+      },
+      "battery": 91.9982,
+      "reward": 0.0986,
+      "cumulative_reward": 146.0168,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 207.2594,
+          "y": 86.1254,
+          "z": 15.4399
+        },
+        "drone_velocity": {
+          "x": 12.402,
+          "y": 7.1697,
+          "z": 0.9531
+        },
+        "battery": 91.9982,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": -7.2594,
+              "y": -6.1254,
+              "z": -0.4399
+            },
+            "urgency": 0.6,
+            "delivered": true
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 212.7406,
+              "y": 233.8746,
+              "z": 9.5601
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": -57.2594,
+              "y": 393.8746,
+              "z": -5.4399
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 26,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 27,
+      "position": {
+        "x": 213.5396,
+        "y": 90.1999,
+        "z": 15.8953
+      },
+      "velocity": {
+        "x": 12.5605,
+        "y": 8.1489,
+        "z": 0.911
+      },
+      "battery": 91.6518,
+      "reward": 0.1122,
+      "cumulative_reward": 146.129,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 213.5396,
+          "y": 90.1999,
+          "z": 15.8953
+        },
+        "drone_velocity": {
+          "x": 12.5605,
+          "y": 8.1489,
+          "z": 0.911
+        },
+        "battery": 91.6518,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": -13.5396,
+              "y": -10.1999,
+              "z": -0.8953
+            },
+            "urgency": 0.6,
+            "delivered": true
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 206.4604,
+              "y": 229.8001,
+              "z": 9.1047
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": -63.5396,
+              "y": 389.8001,
+              "z": -5.8953
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 27,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 28,
+      "position": {
+        "x": 219.6417,
+        "y": 94.5403,
+        "z": 16.3145
+      },
+      "velocity": {
+        "x": 12.2041,
+        "y": 8.6809,
+        "z": 0.8384
+      },
+      "battery": 91.3082,
+      "reward": 0.1156,
+      "cumulative_reward": 146.2446,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 219.6417,
+          "y": 94.5403,
+          "z": 16.3145
+        },
+        "drone_velocity": {
+          "x": 12.2041,
+          "y": 8.6809,
+          "z": 0.8384
+        },
+        "battery": 91.3082,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": -19.6417,
+              "y": -14.5403,
+              "z": -1.3145
+            },
+            "urgency": 0.6,
+            "delivered": true
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 200.3583,
+              "y": 225.4597,
+              "z": 8.6855
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": -69.6417,
+              "y": 385.4597,
+              "z": -6.3145
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 28,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 29,
+      "position": {
+        "x": 225.5806,
+        "y": 99.1042,
+        "z": 16.7017
+      },
+      "velocity": {
+        "x": 11.8779,
+        "y": 9.1277,
+        "z": 0.7744
+      },
+      "battery": 90.9672,
+      "reward": 0.1181,
+      "cumulative_reward": 146.3626,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 225.5806,
+          "y": 99.1042,
+          "z": 16.7017
+        },
+        "drone_velocity": {
+          "x": 11.8779,
+          "y": 9.1277,
+          "z": 0.7744
+        },
+        "battery": 90.9672,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": -25.5806,
+              "y": -19.1042,
+              "z": -1.7017
+            },
+            "urgency": 0.6,
+            "delivered": true
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 194.4194,
+              "y": 220.8958,
+              "z": 8.2983
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": -75.5806,
+              "y": 380.8958,
+              "z": -6.7017
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 29,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 30,
+      "position": {
+        "x": 231.3722,
+        "y": 103.8558,
+        "z": 17.0609
+      },
+      "velocity": {
+        "x": 11.5832,
+        "y": 9.5033,
+        "z": 0.7183
+      },
+      "battery": 90.6285,
+      "reward": 0.1199,
+      "cumulative_reward": 146.4825,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 231.3722,
+          "y": 103.8558,
+          "z": 17.0609
+        },
+        "drone_velocity": {
+          "x": 11.5832,
+          "y": 9.5033,
+          "z": 0.7183
+        },
+        "battery": 90.6285,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": -31.3722,
+              "y": -23.8558,
+              "z": -2.0609
+            },
+            "urgency": 0.6,
+            "delivered": true
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 188.6278,
+              "y": 216.1442,
+              "z": 7.9391
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": -81.3722,
+              "y": 376.1442,
+              "z": -7.0609
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 30,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 31,
+      "position": {
+        "x": 237.032,
+        "y": 108.7655,
+        "z": 17.3956
+      },
+      "velocity": {
+        "x": 11.3195,
+        "y": 9.8194,
+        "z": 0.6694
+      },
+      "battery": 90.2917,
+      "reward": 0.1213,
+      "cumulative_reward": 146.6038,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 237.032,
+          "y": 108.7655,
+          "z": 17.3956
+        },
+        "drone_velocity": {
+          "x": 11.3195,
+          "y": 9.8194,
+          "z": 0.6694
+        },
+        "battery": 90.2917,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": -37.032,
+              "y": -28.7655,
+              "z": -2.3956
+            },
+            "urgency": 0.6,
+            "delivered": true
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 182.968,
+              "y": 211.2345,
+              "z": 7.6044
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": -87.032,
+              "y": 371.2345,
+              "z": -7.3956
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 31,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 32,
+      "position": {
+        "x": 242.5747,
+        "y": 113.8084,
+        "z": 17.709
+      },
+      "velocity": {
+        "x": 11.0853,
+        "y": 10.0858,
+        "z": 0.6268
+      },
+      "battery": 89.9567,
+      "reward": 0.1222,
+      "cumulative_reward": 146.726,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 242.5747,
+          "y": 113.8084,
+          "z": 17.709
+        },
+        "drone_velocity": {
+          "x": 11.0853,
+          "y": 10.0858,
+          "z": 0.6268
+        },
+        "battery": 89.9567,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": -42.5747,
+              "y": -33.8084,
+              "z": -2.709
+            },
+            "urgency": 0.6,
+            "delivered": true
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 177.4253,
+              "y": 206.1916,
+              "z": 7.291
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": -92.5747,
+              "y": 366.1916,
+              "z": -7.709
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 32,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 33,
+      "position": {
+        "x": 248.0139,
+        "y": 118.9638,
+        "z": 18.0039
+      },
+      "velocity": {
+        "x": 10.8785,
+        "y": 10.3107,
+        "z": 0.5898
+      },
+      "battery": 89.6231,
+      "reward": 0.123,
+      "cumulative_reward": 146.849,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 248.0139,
+          "y": 118.9638,
+          "z": 18.0039
+        },
+        "drone_velocity": {
+          "x": 10.8785,
+          "y": 10.3107,
+          "z": 0.5898
+        },
+        "battery": 89.6231,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": -48.0139,
+              "y": -38.9638,
+              "z": -3.0039
+            },
+            "urgency": 0.6,
+            "delivered": true
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 171.9861,
+              "y": 201.0362,
+              "z": 6.9961
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": -98.0139,
+              "y": 361.0362,
+              "z": -8.0039
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 33,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 34,
+      "position": {
+        "x": 253.3622,
+        "y": 124.2143,
+        "z": 18.2828
+      },
+      "velocity": {
+        "x": 10.6966,
+        "y": 10.501,
+        "z": 0.5577
+      },
+      "battery": 89.2908,
+      "reward": 0.1235,
+      "cumulative_reward": 146.9725,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 253.3622,
+          "y": 124.2143,
+          "z": 18.2828
+        },
+        "drone_velocity": {
+          "x": 10.6966,
+          "y": 10.501,
+          "z": 0.5577
+        },
+        "battery": 89.2908,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": -53.3622,
+              "y": -44.2143,
+              "z": -3.2828
+            },
+            "urgency": 0.6,
+            "delivered": true
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 166.6378,
+              "y": 195.7857,
+              "z": 6.7172
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": -103.3622,
+              "y": 355.7857,
+              "z": -8.2828
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 34,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 35,
+      "position": {
+        "x": 258.6309,
+        "y": 129.5454,
+        "z": 18.5477
+      },
+      "velocity": {
+        "x": 10.5373,
+        "y": 10.6622,
+        "z": 0.53
+      },
+      "battery": 88.9596,
+      "reward": 0.1239,
+      "cumulative_reward": 147.0965,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 258.6309,
+          "y": 129.5454,
+          "z": 18.5477
+        },
+        "drone_velocity": {
+          "x": 10.5373,
+          "y": 10.6622,
+          "z": 0.53
+        },
+        "battery": 88.9596,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": -58.6309,
+              "y": -49.5454,
+              "z": -3.5477
+            },
+            "urgency": 0.6,
+            "delivered": true
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 161.3691,
+              "y": 190.4546,
+              "z": 6.4523
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": -108.6309,
+              "y": 350.4546,
+              "z": -8.5477
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 35,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 36,
+      "position": {
+        "x": 263.83,
+        "y": 134.945,
+        "z": 18.8007
+      },
+      "velocity": {
+        "x": 10.3982,
+        "y": 10.7991,
+        "z": 0.506
+      },
+      "battery": 88.6293,
+      "reward": 0.1242,
+      "cumulative_reward": 147.2207,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 263.83,
+          "y": 134.945,
+          "z": 18.8007
+        },
+        "drone_velocity": {
+          "x": 10.3982,
+          "y": 10.7991,
+          "z": 0.506
+        },
+        "battery": 88.6293,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": -63.83,
+              "y": -54.945,
+              "z": -3.8007
+            },
+            "urgency": 0.6,
+            "delivered": true
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 156.17,
+              "y": 185.055,
+              "z": 6.1993
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": -113.83,
+              "y": 345.055,
+              "z": -8.8007
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 36,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 37,
+      "position": {
+        "x": 268.9685,
+        "y": 140.4027,
+        "z": 19.0434
+      },
+      "velocity": {
+        "x": 10.277,
+        "y": 10.9155,
+        "z": 0.4852
+      },
+      "battery": 88.2999,
+      "reward": 0.1244,
+      "cumulative_reward": 147.3451,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 268.9685,
+          "y": 140.4027,
+          "z": 19.0434
+        },
+        "drone_velocity": {
+          "x": 10.277,
+          "y": 10.9155,
+          "z": 0.4852
+        },
+        "battery": 88.2999,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": -68.9685,
+              "y": -60.4027,
+              "z": -4.0434
+            },
+            "urgency": 0.6,
+            "delivered": true
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 151.0315,
+              "y": 179.5973,
+              "z": 5.9566
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": -118.9685,
+              "y": 339.5973,
+              "z": -9.0434
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 37,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 38,
+      "position": {
+        "x": 274.0543,
+        "y": 145.91,
+        "z": 19.277
+      },
+      "velocity": {
+        "x": 10.1716,
+        "y": 11.0145,
+        "z": 0.4673
+      },
+      "battery": 87.9712,
+      "reward": 0.1246,
+      "cumulative_reward": 147.4697,
+      "events": [],
+      "observation": {
+        "drone_position": {
+          "x": 274.0543,
+          "y": 145.91,
+          "z": 19.277
+        },
+        "drone_velocity": {
+          "x": 10.1716,
+          "y": 11.0145,
+          "z": 0.4673
+        },
+        "battery": 87.9712,
+        "carrying_payload": true,
+        "alive": true,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": -74.0543,
+              "y": -65.91,
+              "z": -4.277
+            },
+            "urgency": 0.6,
+            "delivered": true
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 145.9457,
+              "y": 174.09,
+              "z": 5.723
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": -124.0543,
+              "y": 334.09,
+              "z": -9.277
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 38,
+        "max_steps": 500
+      }
+    },
+    {
+      "step": 39,
+      "position": {
+        "x": 279.0943,
+        "y": 151.4595,
+        "z": 19.503
+      },
+      "velocity": {
+        "x": 10.08,
+        "y": 11.099,
+        "z": 0.4519
+      },
+      "battery": 87.6431,
+      "reward": -199.8753,
+      "cumulative_reward": -52.4056,
+      "events": [
+        "collision"
+      ],
+      "observation": {
+        "drone_position": {
+          "x": 279.0943,
+          "y": 151.4595,
+          "z": 19.503
+        },
+        "drone_velocity": {
+          "x": 10.08,
+          "y": 11.099,
+          "z": 0.4519
+        },
+        "battery": 87.6431,
+        "carrying_payload": true,
+        "alive": false,
+        "targets": [
+          {
+            "id": "T1",
+            "relative_position": {
+              "x": -79.0943,
+              "y": -71.4595,
+              "z": -4.503
+            },
+            "urgency": 0.6,
+            "delivered": true
+          },
+          {
+            "id": "T2",
+            "relative_position": {
+              "x": 140.9057,
+              "y": 168.5405,
+              "z": 5.497
+            },
+            "urgency": 1.0,
+            "delivered": false
+          },
+          {
+            "id": "T3",
+            "relative_position": {
+              "x": -129.0943,
+              "y": 328.5405,
+              "z": -9.503
+            },
+            "urgency": 0.8,
+            "delivered": false
+          }
+        ],
+        "step": 39,
+        "max_steps": 500
+      }
+    }
+  ],
+  "summary": {
+    "total_steps": 39,
+    "cumulative_reward": -52.4056,
+    "delivered": [
+      "T1"
+    ],
+    "alive": false,
+    "final_battery": 87.6431,
+    "success": false
+  }
+}
