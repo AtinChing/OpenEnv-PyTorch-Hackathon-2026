@@ -123,5 +123,33 @@
       "T2"
     ],
     "trace_file": "./results/generalization/trace_two_targets.json"
+  },
+  {
+    "map": "final_boss",
+    "mean_reward": 1376.2,
+    "std_reward": 4.6,
+    "mean_deliveries": 3.0,
+    "max_deliveries": 3,
+    "success_rate": 0.0,
+    "mean_length": 811.0,
+    "best_reward": 1379.8,
+    "best_delivered": [
+      "T1",
+      "T2",
+      "T3"
+    ],
+    "trace_file": "./results/generalization/trace_final_boss.json"
+  },
+  {
+    "map": "altitude_gauntlet",
+    "mean_reward": -213.6,
+    "std_reward": 0.0,
+    "mean_deliveries": 0.0,
+    "max_deliveries": 0,
+    "success_rate": 0.0,
+    "mean_length": 173.0,
+    "best_reward": -213.5,
+    "best_delivered": [],
+    "trace_file": "./results/generalization/trace_altitude_gauntlet.json"
   }
 ]

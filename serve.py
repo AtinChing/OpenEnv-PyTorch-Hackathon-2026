@@ -15,6 +15,7 @@ from typing import Any
 
 from sim_types import Vec3
 from varaha_env import VarahaEnv
+from czml_converter import trace_to_czml
 
 
 def _heuristic_action(obs: dict[str, Any], env: VarahaEnv) -> dict[str, Any]:
@@ -98,14 +99,36 @@ class VarahaHandler(SimpleHTTPRequestHandler):
         if self.path == "/api/traces":
             traces = _find_trace_jsons()
             payload = json.dumps(traces).encode()
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Content-Length", str(len(payload)))
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.end_headers()
-            self.wfile.write(payload)
+            self._json_response(payload)
+        elif self.path.startswith("/api/czml/"):
+            trace_name = self.path[len("/api/czml/"):]
+            self._serve_czml(trace_name)
         else:
             super().do_GET()
+
+    def _json_response(self, payload: bytes, status: int = 200):
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(payload)))
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(payload)
+
+    def _serve_czml(self, trace_name: str):
+        if not trace_name or ".." in trace_name:
+            self.send_error(400, "Invalid trace name")
+            return
+        if not os.path.isfile(trace_name):
+            self.send_error(404, f"Trace not found: {trace_name}")
+            return
+        try:
+            with open(trace_name) as f:
+                data = json.load(f)
+            czml = trace_to_czml(data)
+            payload = json.dumps(czml).encode()
+            self._json_response(payload)
+        except Exception as exc:
+            self.send_error(500, str(exc))
 
     def do_POST(self):
         if self.path == "/api/run":
@@ -118,13 +141,7 @@ class VarahaHandler(SimpleHTTPRequestHandler):
 
             trace = run_simulation(method, seed, max_steps)
             payload = json.dumps(trace).encode()
-
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Content-Length", str(len(payload)))
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.end_headers()
-            self.wfile.write(payload)
+            self._json_response(payload)
         else:
             self.send_error(404)
 
@@ -150,4 +167,5 @@ if __name__ == "__main__":
     port = 9090
     server = ReusableHTTPServer(("", port), VarahaHandler)
     print(f"Varaha server running at http://localhost:{port}/visualizer.html")
+    print(f"CesiumJS 3D viewer at  http://localhost:{port}/cesium_viewer.html")
     server.serve_forever()
