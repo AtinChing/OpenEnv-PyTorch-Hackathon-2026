@@ -13,6 +13,12 @@ Default hardcore training:
 python train_ppo.py --timesteps 50000000 --n-envs 64 --save-dir ./results_hardcore
 ```
 
+Quick ~15-minute training pass:
+
+```bash
+python train_ppo.py --quick-15m --hard-mix --device cuda --require-cuda
+```
+
 Ultra-hard V2:
 
 ```bash

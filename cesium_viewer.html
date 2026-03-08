@@ -310,8 +310,8 @@
           <div>
             <label for="strictMode">Strict Cinematic Mode</label>
             <select id="strictMode">
-              <option value="true" selected>ON (no primitive fallbacks)</option>
-              <option value="false">OFF (debug fallbacks allowed)</option>
+              <option value="true">ON (model-first)</option>
+              <option value="false" selected>OFF (fallbacks allowed)</option>
             </select>
           </div>
           <div>
@@ -524,9 +524,11 @@
       state.cfg.models.drone = DEFAULT_DRONE_MODEL_URI;
     }
     if (state.cfg.strictMode) {
-      const strictRequired = ['drone', 'fire', 'building', 'park', 'responder'];
-      const missingStrictAsset = strictRequired.some((k) => !nonEmpty(state.cfg.models?.[k]));
-      if (missingStrictAsset) state.cfg.strictMode = false;
+      // Fire/responders have primitive fallbacks; keep strict mode focused on
+      // obstacle model availability.
+      const hasObstacleModel =
+        nonEmpty(state.cfg.models?.building) || nonEmpty(state.cfg.models?.park);
+      if (!hasObstacleModel) state.cfg.strictMode = false;
     }
   }
 
@@ -966,20 +968,40 @@
     (world.hazards || []).forEach((h) => {
       const radius = Number(h.radius) || 100;
       const height = Number(h.current_height || h.height) || 80;
-      const scale = Math.max(0.4, radius / 90) * state.cfg.scales.fire;
+      const centerPos = localXYToCartesian(h.center.x, h.center.y, 0);
+
+      // Always draw a fire fallback dome/cylinder so hazards are visible
+      // even when model URIs are missing or model loading fails.
+      viewer.entities.add({
+        id: `fire-fallback-${h.id}`,
+        name: `Hazard ${h.id}`,
+        position: localXYToCartesian(h.center.x, h.center.y, Math.max(8, height * 0.45)),
+        ellipsoid: {
+          radii: new Cesium.Cartesian3(
+            Math.max(12, radius * 0.72),
+            Math.max(12, radius * 0.72),
+            Math.max(10, height * 0.42)
+          ),
+          material: Cesium.Color.fromCssColorString('#ff6228').withAlpha(0.24),
+          outline: true,
+          outlineColor: Cesium.Color.fromCssColorString('#ff8f52').withAlpha(0.5),
+          subdivisions: 32,
+          stackPartitions: 24,
+          slicePartitions: 24,
+        },
+      });
 
       viewer.entities.add({
-        id: `fire-${h.id}`,
-        name: `Hazard ${h.id}`,
-        position: localXYToCartesian(h.center.x, h.center.y, Math.max(2, height * 0.2)),
-        model: {
-          uri: state.cfg.models.fire,
-          scale,
-          minimumPixelSize: 64,
-          maximumScale: 260,
-          runAnimations: true,
-          clampAnimations: true,
-          shadows: Cesium.ShadowMode.ENABLED,
+        id: `fire-ring-${h.id}`,
+        position: centerPos,
+        ellipse: {
+          semiMajorAxis: Math.max(20, radius),
+          semiMinorAxis: Math.max(20, radius),
+          height: 0,
+          material: Cesium.Color.fromCssColorString('#ff5522').withAlpha(0.15),
+          outline: true,
+          outlineColor: Cesium.Color.fromCssColorString('#ff9d64').withAlpha(0.55),
+          numberOfVerticalLines: 32,
         },
         label: {
           text: `${h.id} (r=${Math.round(radius)}m)` ,
@@ -994,6 +1016,24 @@
           pixelOffset: new Cesium.Cartesian2(0, -12),
         },
       });
+
+      if (nonEmpty(state.cfg.models.fire)) {
+        const scale = Math.max(0.4, radius / 90) * state.cfg.scales.fire;
+        viewer.entities.add({
+          id: `fire-model-${h.id}`,
+          name: `Hazard FX ${h.id}`,
+          position: localXYToCartesian(h.center.x, h.center.y, Math.max(2, height * 0.2)),
+          model: {
+            uri: state.cfg.models.fire,
+            scale,
+            minimumPixelSize: 64,
+            maximumScale: 260,
+            runAnimations: true,
+            clampAnimations: true,
+            shadows: Cesium.ShadowMode.ENABLED,
+          },
+        });
+      }
     });
   }
 
@@ -1049,35 +1089,71 @@
         }));
 
     responders.forEach((r, i) => {
+      const pos = localToCartesian(r.position);
+      const status = String(r.status || 'stable').toLowerCase();
+      const color = status.includes('critical')
+        ? Cesium.Color.fromCssColorString('#ff6b6b')
+        : status.includes('urgent')
+          ? Cesium.Color.fromCssColorString('#ffb35c')
+          : Cesium.Color.fromCssColorString('#6bd8ff');
+
+      // Always draw a responder fallback marker so they remain visible.
       viewer.entities.add({
-        id: `responder-${r.id}`,
+        id: `responder-fallback-${r.id}`,
         name: `Responder ${r.id}`,
-        position: localToCartesian(r.position),
-        orientation: Cesium.Transforms.headingPitchRollQuaternion(
-          localToCartesian(r.position),
-          new Cesium.HeadingPitchRoll((i * Math.PI) / 5, 0, 0)
-        ),
-        model: {
-          uri: state.cfg.models.responder,
-          scale: state.cfg.scales.responder,
-          minimumPixelSize: 28,
-          maximumScale: 120,
-          runAnimations: true,
-          clampAnimations: true,
-          shadows: Cesium.ShadowMode.ENABLED,
+        position: pos,
+        point: {
+          pixelSize: 10,
+          color: color.withAlpha(0.95),
+          outlineColor: Cesium.Color.WHITE.withAlpha(0.9),
+          outlineWidth: 2,
+          disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        },
+        label: {
+          text: `R:${r.id}`,
+          font: '12px sans-serif',
+          fillColor: color,
+          outlineColor: Cesium.Color.BLACK,
+          outlineWidth: 2,
+          style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+          verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+          pixelOffset: new Cesium.Cartesian2(0, -10),
+          showBackground: true,
+          backgroundColor: Cesium.Color.fromCssColorString('rgba(8, 18, 30, 0.72)'),
         },
       });
+
+      if (nonEmpty(state.cfg.models.responder)) {
+        viewer.entities.add({
+          id: `responder-model-${r.id}`,
+          name: `Responder ${r.id} model`,
+          position: pos,
+          orientation: Cesium.Transforms.headingPitchRollQuaternion(
+            pos,
+            new Cesium.HeadingPitchRoll((i * Math.PI) / 5, 0, 0)
+          ),
+          model: {
+            uri: state.cfg.models.responder,
+            scale: state.cfg.scales.responder,
+            minimumPixelSize: 28,
+            maximumScale: 120,
+            runAnimations: true,
+            clampAnimations: true,
+            shadows: Cesium.ShadowMode.ENABLED,
+          },
+        });
+      }
     });
   }
 
   function qualityGate(world) {
     const missing = [];
-    if (!state.cfg.models.drone) missing.push('Drone model URI');
-    if ((world.hazards || []).length > 0 && !state.cfg.models.fire) missing.push('Fire model URI');
-    if ((world.obstacles || []).length > 0 && !state.cfg.models.building) missing.push('Building model URI');
-    if ((world.obstacles || []).length > 0 && !state.cfg.models.park) missing.push('Park object model URI');
-    if (((world.responders || []).length > 0 || (world.targets || []).length > 0) && !state.cfg.models.responder) {
-      missing.push('Responder model URI');
+
+    // Fire and responder now have always-on primitive fallbacks, so strict mode
+    // should not block loading when those model URIs are absent.
+    const obstacleCount = (world.obstacles || []).length;
+    if (obstacleCount > 0 && !state.cfg.models.building && !state.cfg.models.park) {
+      missing.push('Building/Park model URI');
     }
     return missing;
   }
@@ -1232,9 +1308,9 @@
     renderStaticContext(data.world);
 
     addDroneModel(data.trace);
-    if (state.cfg.models.fire) addFireModels(data.world);
+    addFireModels(data.world);
     if (state.cfg.models.building || state.cfg.models.park) addObstacleModels(data.world);
-    if (state.cfg.models.responder) addResponderModels(data.world);
+    addResponderModels(data.world);
 
     await applyTileset();
 
