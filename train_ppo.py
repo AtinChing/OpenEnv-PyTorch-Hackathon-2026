@@ -141,7 +141,7 @@ def save_trajectories(model, save_dir: str, n: int = 3, prefix: str = "trace_tra
 # Main training loop
 # -----------------------------------------------------------------------
 
-def train(total_timesteps: int = 500_000, n_envs: int = 4, save_dir: str = "./results"):
+def train(total_timesteps: int = 10_000_000, n_envs: int = 32, save_dir: str = "./results"):
     os.makedirs(save_dir, exist_ok=True)
 
     def make_env(rank):
@@ -151,13 +151,13 @@ def train(total_timesteps: int = 500_000, n_envs: int = 4, save_dir: str = "./re
             return env
         return _init
 
-    vec_env = DummyVecEnv([make_env(i) for i in range(n_envs)])
+    vec_env = SubprocVecEnv([make_env(i) for i in range(n_envs)])
 
     model = PPO(
         "MlpPolicy",
         vec_env,
         n_steps=2048,
-        batch_size=128,
+        batch_size=512,
         n_epochs=10,
         learning_rate=3e-4,
         gamma=0.995,
@@ -167,14 +167,13 @@ def train(total_timesteps: int = 500_000, n_envs: int = 4, save_dir: str = "./re
         vf_coef=0.5,
         max_grad_norm=0.5,
         verbose=1,
-        # tensorboard_log=os.path.join(save_dir, "tb_logs"),
         device="cuda",
     )
 
     callback = MetricsCallback()
 
     print("=" * 60)
-    print(f"  PPO Training — {total_timesteps:,} timesteps, {n_envs} envs")
+    print(f"  PPO Training — {total_timesteps:,} timesteps, {n_envs} envs (SubprocVecEnv)")
     print("=" * 60)
     t0 = time.time()
     model.learn(total_timesteps=total_timesteps, callback=callback)
@@ -216,7 +215,7 @@ def train(total_timesteps: int = 500_000, n_envs: int = 4, save_dir: str = "./re
 
     # Also save an untrained trajectory for comparison
     print("\n  Saving untrained trajectory for comparison...")
-    untrained = PPO("MlpPolicy", DummyVecEnv([make_env(0)]), device="cuda")
+    untrained = PPO("MlpPolicy", DummyVecEnv([make_env(0)]), device="cpu")
     save_trajectories(untrained, save_dir, n=1, prefix="trace_untrained")
 
     print("\n" + "=" * 60)
@@ -227,8 +226,8 @@ def train(total_timesteps: int = 500_000, n_envs: int = 4, save_dir: str = "./re
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train PPO on Varaha")
-    parser.add_argument("--timesteps", type=int, default=500_000)
-    parser.add_argument("--n-envs", type=int, default=4)
+    parser.add_argument("--timesteps", type=int, default=10_000_000)
+    parser.add_argument("--n-envs", type=int, default=32)
     parser.add_argument("--save-dir", type=str, default="./results")
     args = parser.parse_args()
     train(total_timesteps=args.timesteps, n_envs=args.n_envs, save_dir=args.save_dir)

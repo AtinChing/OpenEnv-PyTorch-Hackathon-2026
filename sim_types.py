@@ -128,22 +128,53 @@ class DeliveryTarget:
 
 @dataclass
 class HazardRegion:
-    """Wildfire / no-fly danger zone modeled as a sphere."""
+    """Wildfire danger zone modeled as a ground-level dome.
+
+    The hazard has a horizontal radius and a height.  Danger is zero
+    above ``height`` and outside ``radius``, allowing drones to fly
+    over fires at sufficient altitude.  Within the dome, danger scales
+    with proximity to the center both horizontally and vertically.
+
+    ``growth_rate`` controls per-step height increase (metres/step),
+    simulating fire growth over an episode.
+    """
 
     id: str = ""
     center: Vec3 = field(default_factory=Vec3)
     radius: float = 50.0
     severity: float = 0.5
+    height: float = 80.0
+    growth_rate: float = 0.0
+    _current_height: float = field(default=0.0, init=False, repr=False)
+
+    def __post_init__(self):
+        self._current_height = self.height
+
+    def reset(self):
+        """Reset dynamic state for a new episode."""
+        self._current_height = self.height
+
+    def tick(self):
+        """Advance one timestep — grow the fire."""
+        if self.growth_rate > 0:
+            self._current_height += self.growth_rate
 
     def contains(self, pos: Vec3) -> bool:
-        return pos.distance_to(self.center) <= self.radius
+        horiz = ((pos.x - self.center.x) ** 2 + (pos.y - self.center.y) ** 2) ** 0.5
+        alt = pos.z - self.center.z
+        return horiz <= self.radius and 0 <= alt < self._current_height
 
     def danger_factor(self, pos: Vec3) -> float:
-        """0 outside, scales up to *severity* at the center."""
-        d = pos.distance_to(self.center)
-        if d >= self.radius:
+        """0 outside the dome, scales up toward the ground-level center."""
+        horiz = ((pos.x - self.center.x) ** 2 + (pos.y - self.center.y) ** 2) ** 0.5
+        if horiz >= self.radius:
             return 0.0
-        return self.severity * (1.0 - d / self.radius)
+        alt = pos.z - self.center.z
+        if alt >= self._current_height or alt < 0:
+            return 0.0
+        horiz_factor = 1.0 - horiz / self.radius
+        vert_factor = 1.0 - alt / self._current_height
+        return self.severity * horiz_factor * vert_factor
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -151,6 +182,9 @@ class HazardRegion:
             "center": self.center.to_dict(),
             "radius": self.radius,
             "severity": self.severity,
+            "height": self.height,
+            "current_height": round(self._current_height, 2),
+            "growth_rate": self.growth_rate,
         }
 
 

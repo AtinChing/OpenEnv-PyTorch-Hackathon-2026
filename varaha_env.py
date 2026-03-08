@@ -57,9 +57,9 @@ class VarahaConfig:
     step_penalty: float = 0.05
     battery_cost_factor: float = 0.3
     collision_penalty: float = 300.0
-    hazard_penalty: float = 30.0
+    hazard_penalty: float = 5.0
     failure_penalty: float = 200.0
-    distance_shaping_factor: float = 0.02
+    distance_shaping_factor: float = 0.05
 
     # California origin anchor (near Sacramento — wildfire-relevant)
     origin_lat: float = 38.55
@@ -151,12 +151,14 @@ class VarahaEnv:
 
         self.hazards = [
             HazardRegion(
-                id="H1", center=Vec3(3800.0, 2600.0, 40.0),
+                id="H1", center=Vec3(3800.0, 2600.0, 0.0),
                 radius=500.0, severity=0.9,
+                height=70.0, growth_rate=0.005,
             ),
             HazardRegion(
-                id="H2", center=Vec3(900.0, 3200.0, 25.0),
+                id="H2", center=Vec3(900.0, 3200.0, 0.0),
                 radius=400.0, severity=0.7,
+                height=55.0, growth_rate=0.008,
             ),
         ]
 
@@ -192,6 +194,11 @@ class VarahaEnv:
 
         for t in self.targets:
             t.delivered = False
+
+        for h in self.hazards:
+            h.height = h.height * random.uniform(0.85, 1.15)
+            h.severity = max(0.3, min(1.0, h.severity + random.uniform(-0.1, 0.1)))
+            h.reset()
 
         self.step_count = 0
         self.cumulative_reward = 0.0
@@ -250,6 +257,10 @@ class VarahaEnv:
         # --- battery ---
         drain = self._compute_battery_drain(dist_traveled, elevation_change)
         self.drone.battery -= drain
+
+        # --- advance dynamic hazards ---
+        for h in self.hazards:
+            h.tick()
 
         # --- world interactions ---
         collision = self._check_collisions()
@@ -341,6 +352,16 @@ class VarahaEnv:
                 "delivered": t.delivered,
             })
 
+        hazards_obs = []
+        for h in self.hazards:
+            rel = h.center - self.drone.position
+            hazards_obs.append({
+                "id": h.id,
+                "relative_position": rel.to_dict(),
+                "current_height": h._current_height,
+                "severity": h.severity,
+            })
+
         return {
             "drone_position": self.drone.position.to_dict(),
             "drone_velocity": self.drone.velocity.to_dict(),
@@ -348,6 +369,7 @@ class VarahaEnv:
             "carrying_payload": self.drone.carrying_payload,
             "alive": self.drone.alive,
             "targets": targets_obs,
+            "hazards": hazards_obs,
             "step": self.step_count,
             "max_steps": self.cfg.max_episode_steps,
         }
@@ -474,12 +496,18 @@ class VarahaEnv:
         )
         total += bd["battery_cost"]
 
-        # delivery rewards (scaled by urgency)
+        # delivery rewards (scaled by urgency) + progress bonus
         for tid in info.delivered_target_ids:
             tgt = next(t for t in self.targets if t.id == tid)
             r = self.cfg.delivery_reward * (1.0 + tgt.urgency)
             bd[f"delivery_{tid}"] = r
             total += r
+
+        if info.delivered_target_ids:
+            n_remaining = sum(1 for t in self.targets if not t.delivered)
+            progress_bonus = 50.0 * (1.0 - n_remaining / len(self.targets))
+            bd["progress_bonus"] = progress_bonus
+            total += progress_bonus
 
         # collision
         if info.collision:
@@ -496,15 +524,19 @@ class VarahaEnv:
             bd["return_bonus"] = self.cfg.return_bonus
             total += bd["return_bonus"]
 
-        # distance shaping — small nudge toward nearest goal
+        # distance shaping — nudge toward nearest undelivered target (or base)
         # Skip shaping on delivery steps to avoid a huge negative spike
         # when the nearest-target reference jumps to a farther target.
+        # Double the factor when heading home after all deliveries.
         curr_dist = self._nearest_target_dist()
         if info.delivered_target_ids:
             bd["distance_shaping"] = 0.0
             self._prev_nearest_dist = curr_dist
         else:
-            shaping = (self._prev_nearest_dist - curr_dist) * self.cfg.distance_shaping_factor
+            factor = self.cfg.distance_shaping_factor
+            if self._all_delivered():
+                factor *= 2.0
+            shaping = (self._prev_nearest_dist - curr_dist) * factor
             bd["distance_shaping"] = shaping
             total += shaping
             self._prev_nearest_dist = curr_dist
