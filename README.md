@@ -1,3 +1,12 @@
+---
+title: Varaha OpenEnv
+sdk: docker
+app_port: 7860
+---
+
+OpenEnv wildfire benchmark for long-horizon drone RL systems
+
+
 # Varaha Training Paths
 
 This repo now has two runnable training tracks:

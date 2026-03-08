@@ -1,0 +1,20 @@
+[
+  {
+    "mean_reward": 505.7468415843767,
+    "std_reward": 0.3493363860995747,
+    "mean_length": 3500.0,
+    "mean_deliveries": 1.0,
+    "success_rate": 0.0,
+    "n_episodes": 6,
+    "map": "final_boss"
+  },
+  {
+    "mean_reward": -523.299071623051,
+    "std_reward": 0.0,
+    "mean_length": 201.0,
+    "mean_deliveries": 0.0,
+    "success_rate": 0.0,
+    "n_episodes": 6,
+    "map": "altitude_gauntlet"
+  }
+]

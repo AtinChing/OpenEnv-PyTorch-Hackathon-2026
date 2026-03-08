@@ -1079,6 +1079,32 @@
     });
   }
 
+  function addObstacleFallbacks(world) {
+    (world.obstacles || []).forEach((o, i) => {
+      const min = o.min_corner || { x: 0, y: 0, z: 0 };
+      const max = o.max_corner || { x: 0, y: 0, z: 0 };
+      const sx = Math.max(2, (max.x || 0) - (min.x || 0));
+      const sy = Math.max(2, (max.y || 0) - (min.y || 0));
+      const sz = Math.max(2, (max.z || 0) - (min.z || 0));
+      const center = {
+        x: (min.x + max.x) / 2,
+        y: (min.y + max.y) / 2,
+        z: (min.z + max.z) / 2,
+      };
+
+      viewer.entities.add({
+        id: `obstacle-fallback-${o.id || i}`,
+        position: localToCartesian(center),
+        box: {
+          dimensions: new Cesium.Cartesian3(sx, sy, sz),
+          material: Cesium.Color.fromCssColorString('#8fa0bb').withAlpha(0.24),
+          outline: true,
+          outlineColor: Cesium.Color.fromCssColorString('#dce7ff').withAlpha(0.9),
+        },
+      });
+    });
+  }
+
   function addResponderModels(world) {
     const responders = (world.responders && world.responders.length > 0)
       ? world.responders
@@ -1088,74 +1114,97 @@
           status: 'on_site',
         }));
 
+    const iconSvg = encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="96" viewBox="0 0 64 96">' +
+      '<circle cx="32" cy="14" r="10" fill="#ffd84a" stroke="#1f1f1f" stroke-width="3"/>' +
+      '<rect x="22" y="26" width="20" height="34" rx="8" fill="#ffd84a" stroke="#1f1f1f" stroke-width="3"/>' +
+      '<rect x="10" y="30" width="12" height="8" rx="4" fill="#ffd84a" stroke="#1f1f1f" stroke-width="2"/>' +
+      '<rect x="42" y="30" width="12" height="8" rx="4" fill="#ffd84a" stroke="#1f1f1f" stroke-width="2"/>' +
+      '<rect x="22" y="60" width="8" height="28" rx="4" fill="#ffd84a" stroke="#1f1f1f" stroke-width="2"/>' +
+      '<rect x="34" y="60" width="8" height="28" rx="4" fill="#ffd84a" stroke="#1f1f1f" stroke-width="2"/>' +
+      '</svg>'
+    );
+    const iconUrl = `data:image/svg+xml;charset=utf-8,${iconSvg}`;
+    const clampMode = Cesium.HeightReference?.CLAMP_TO_3D_TILE
+      ?? Cesium.HeightReference?.CLAMP_TO_GROUND
+      ?? Cesium.HeightReference?.NONE;
+
     responders.forEach((r, i) => {
-      const pos = localToCartesian(r.position);
-      const status = String(r.status || 'stable').toLowerCase();
-      const color = status.includes('critical')
-        ? Cesium.Color.fromCssColorString('#ff6b6b')
-        : status.includes('urgent')
-          ? Cesium.Color.fromCssColorString('#ffb35c')
-          : Cesium.Color.fromCssColorString('#6bd8ff');
+      try {
+        const id = String(r.id || `R${i + 1}`);
+        const pos = localToCartesian(r.position || { x: 0, y: 0, z: 0 });
+        const status = String(r.status || 'stable').toLowerCase();
+        const color = status.includes('critical')
+          ? Cesium.Color.fromCssColorString('#ff6b6b')
+          : status.includes('urgent')
+            ? Cesium.Color.fromCssColorString('#ffb35c')
+            : Cesium.Color.fromCssColorString('#ffd84a');
 
-      // Always draw a responder fallback marker so they remain visible.
-      viewer.entities.add({
-        id: `responder-fallback-${r.id}`,
-        name: `Responder ${r.id}`,
-        position: pos,
-        point: {
-          pixelSize: 10,
-          color: color.withAlpha(0.95),
-          outlineColor: Cesium.Color.WHITE.withAlpha(0.9),
-          outlineWidth: 2,
-          disableDepthTestDistance: Number.POSITIVE_INFINITY,
-        },
-        label: {
-          text: `R:${r.id}`,
-          font: '12px sans-serif',
-          fillColor: color,
-          outlineColor: Cesium.Color.BLACK,
-          outlineWidth: 2,
-          style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-          verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
-          pixelOffset: new Cesium.Cartesian2(0, -10),
-          showBackground: true,
-          backgroundColor: Cesium.Color.fromCssColorString('rgba(8, 18, 30, 0.72)'),
-        },
-      });
-
-      if (nonEmpty(state.cfg.models.responder)) {
         viewer.entities.add({
-          id: `responder-model-${r.id}`,
-          name: `Responder ${r.id} model`,
+          id: `responder-fallback-${id}`,
+          name: `Responder ${id}`,
           position: pos,
-          orientation: Cesium.Transforms.headingPitchRollQuaternion(
-            pos,
-            new Cesium.HeadingPitchRoll((i * Math.PI) / 5, 0, 0)
-          ),
-          model: {
-            uri: state.cfg.models.responder,
-            scale: state.cfg.scales.responder,
-            minimumPixelSize: 28,
-            maximumScale: 120,
-            runAnimations: true,
-            clampAnimations: true,
-            shadows: Cesium.ShadowMode.ENABLED,
+          billboard: {
+            image: iconUrl,
+            scale: 0.45,
+            verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+            pixelOffset: new Cesium.Cartesian2(0, -6),
+            heightReference: clampMode,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          },
+          point: {
+            pixelSize: 7,
+            color: Cesium.Color.fromCssColorString('#ffd84a').withAlpha(0.95),
+            outlineColor: Cesium.Color.BLACK.withAlpha(0.9),
+            outlineWidth: 2,
+            heightReference: clampMode,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+          },
+          label: {
+            text: `RESP ${id}  ${status.toUpperCase()}`,
+            font: '13px sans-serif',
+            fillColor: color,
+            outlineColor: Cesium.Color.BLACK,
+            outlineWidth: 2,
+            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+            verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+            pixelOffset: new Cesium.Cartesian2(0, -48),
+            showBackground: true,
+            backgroundColor: Cesium.Color.fromCssColorString('rgba(8, 18, 30, 0.78)'),
+            heightReference: clampMode,
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
           },
         });
+
+        if (nonEmpty(state.cfg.models.responder)) {
+          viewer.entities.add({
+            id: `responder-model-${id}`,
+            name: `Responder ${id} model`,
+            position: pos,
+            orientation: Cesium.Transforms.headingPitchRollQuaternion(
+              pos,
+              new Cesium.HeadingPitchRoll((i * Math.PI) / 5, 0, 0)
+            ),
+            model: {
+              uri: state.cfg.models.responder,
+              scale: state.cfg.scales.responder,
+              minimumPixelSize: 28,
+              maximumScale: 120,
+              runAnimations: true,
+              clampAnimations: true,
+              shadows: Cesium.ShadowMode.ENABLED,
+              heightReference: clampMode,
+            },
+          });
+        }
+      } catch (err) {
+        console.warn('Responder render failed', r, err);
       }
     });
   }
 
   function qualityGate(world) {
-    const missing = [];
-
-    // Fire and responder now have always-on primitive fallbacks, so strict mode
-    // should not block loading when those model URIs are absent.
-    const obstacleCount = (world.obstacles || []).length;
-    if (obstacleCount > 0 && !state.cfg.models.building && !state.cfg.models.park) {
-      missing.push('Building/Park model URI');
-    }
-    return missing;
+    return [];
   }
 
   function renderSummary(data) {
@@ -1309,10 +1358,11 @@
 
     addDroneModel(data.trace);
     addFireModels(data.world);
+    addObstacleFallbacks(data.world);
     if (state.cfg.models.building || state.cfg.models.park) addObstacleModels(data.world);
-    addResponderModels(data.world);
 
     await applyTileset();
+    addResponderModels(data.world);
 
     if (state.droneEntity) {
       await viewer.flyTo(state.droneEntity, {

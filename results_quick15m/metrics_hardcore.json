@@ -1,0 +1,16 @@
+{
+  "mean_reward": 816.5353917514715,
+  "std_reward": 754.8266561824239,
+  "mean_length": 3500.0,
+  "mean_deliveries": 1.5,
+  "success_rate": 0.0,
+  "n_episodes": 8,
+  "training_timesteps": 7716800,
+  "training_seconds": 900.0,
+  "training_episodes": 4013,
+  "obs_dim": 169,
+  "net_arch": [
+    512,
+    256
+  ]
+}
