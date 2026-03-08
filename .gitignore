@@ -14,3 +14,16 @@ __pycache__/
 Hackathon Challenge.pdf
 OpenEnv Hackathon Technical content.pdf
 OpenEnv Opening Slides.pdf
+
+# Large model files
+*.glb
+assets/models/building/
+
+# Results and traces
+results_hardcore*/
+results_hardmix_smoke/
+results_quick15m_smoke/
+results/generalization/trace_*.json
+
+# Model checkpoints
+*.zip
