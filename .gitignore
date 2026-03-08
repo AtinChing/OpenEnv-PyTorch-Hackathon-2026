@@ -9,3 +9,8 @@ __pycache__/
 *.pywzz
 *.pyzzz
 *.pywzzz
+.env
+
+Hackathon Challenge.pdf
+OpenEnv Hackathon Technical content.pdf
+OpenEnv Opening Slides.pdf

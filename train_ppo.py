@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Train a PPO policy on VarahaEnv using Stable-Baselines3.
+"""Train a PPO policy on VarahaEnv (hardcore mode) using Stable-Baselines3.
 
 Usage:
-    python train_ppo.py                         # 500K steps, default
-    python train_ppo.py --timesteps 1000000     # 1M steps
-    python train_ppo.py --timesteps 200000 --n-envs 8
+    python train_ppo.py                                  # default hardcore
+    python train_ppo.py --timesteps 50000000 --n-envs 64
+    python train_ppo.py --time-limit 5400                # 90 minutes
 """
 
 import argparse
@@ -22,7 +22,31 @@ from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
 
 from sb3_env_wrapper import VarahaSB3Env
-from varaha_env import build_random_world
+from varaha_env import VarahaConfig, build_hardcore_world, build_hardcore_world_v2
+from world_loader import world_fn_from_json
+
+
+# -----------------------------------------------------------------------
+# Config for hardcore environments
+# -----------------------------------------------------------------------
+
+HARDCORE_CONFIG = VarahaConfig(
+    max_episode_steps=3000,
+    collision_penalty=500.0,
+    obstacle_proximity_penalty=1.5,
+    obstacle_proximity_radius=80.0,
+    distance_shaping_factor=0.05,
+    hazard_penalty=5.0,
+)
+
+HARDCORE_V2_CONFIG = VarahaConfig(
+    max_episode_steps=3500,
+    collision_penalty=500.0,
+    obstacle_proximity_penalty=1.5,
+    obstacle_proximity_radius=80.0,
+    distance_shaping_factor=0.05,
+    hazard_penalty=5.0,
+)
 
 
 # -----------------------------------------------------------------------
@@ -30,12 +54,14 @@ from varaha_env import build_random_world
 # -----------------------------------------------------------------------
 
 class MetricsCallback(BaseCallback):
-    def __init__(self, verbose=0):
+    def __init__(self, time_limit_s: float = 0, verbose=0):
         super().__init__(verbose)
         self.episode_rewards: list[float] = []
         self.episode_lengths: list[int] = []
         self.episode_timestamps: list[int] = []
         self._step_count = 0
+        self._t0 = time.time()
+        self._time_limit = time_limit_s
 
     def _on_step(self) -> bool:
         self._step_count += self.training_env.num_envs
@@ -45,6 +71,10 @@ class MetricsCallback(BaseCallback):
                 self.episode_rewards.append(ep["r"])
                 self.episode_lengths.append(ep["l"])
                 self.episode_timestamps.append(self._step_count)
+
+        if self._time_limit > 0 and (time.time() - self._t0) >= self._time_limit:
+            print(f"\n  TIME LIMIT REACHED ({self._time_limit:.0f}s). Stopping training.")
+            return False
         return True
 
 
@@ -53,10 +83,10 @@ class MetricsCallback(BaseCallback):
 # -----------------------------------------------------------------------
 
 def plot_rewards(rewards: list[float], timestamps: list[int], save_path: str):
-    fig, ax = plt.subplots(figsize=(10, 5))
-    ax.plot(timestamps, rewards, alpha=0.25, color="steelblue", linewidth=0.8)
+    fig, ax = plt.subplots(figsize=(12, 5))
+    ax.plot(timestamps, rewards, alpha=0.15, color="steelblue", linewidth=0.5)
 
-    window = max(1, min(50, len(rewards) // 5))
+    window = max(1, min(100, len(rewards) // 5))
     if len(rewards) >= window:
         kernel = np.ones(window) / window
         smoothed = np.convolve(rewards, kernel, mode="valid")
@@ -70,25 +100,28 @@ def plot_rewards(rewards: list[float], timestamps: list[int], save_path: str):
 
     ax.set_xlabel("Total Timesteps")
     ax.set_ylabel("Episode Reward")
-    ax.set_title("PPO Training — Varaha Wildfire Logistics")
+    ax.set_title("PPO Hardcore Training — Varaha Wildfire Logistics")
     ax.legend()
     ax.grid(True, alpha=0.3)
     fig.tight_layout()
     fig.savefig(save_path, dpi=150)
     plt.close(fig)
-    print(f"  Saved reward curve → {save_path}")
+    print(f"  Saved reward curve -> {save_path}")
 
 
 # -----------------------------------------------------------------------
 # Evaluation
 # -----------------------------------------------------------------------
 
-def evaluate(model, n_episodes: int = 20, deterministic: bool = True):
+def evaluate(model, n_episodes: int = 30, deterministic: bool = True,
+             config=None, world_fn=None, ultra_hard: bool = False):
+    config = config or HARDCORE_CONFIG
+    world_fn = world_fn or build_hardcore_world
     rewards, lengths, deliveries, successes = [], [], [], []
 
     for ep in range(n_episodes):
-        env = VarahaSB3Env()
-        obs, _ = env.reset(seed=ep * 77)
+        env = VarahaSB3Env(config=config, world_fn=world_fn, ultra_hard=ultra_hard)
+        obs, _ = env.reset(seed=ep * 77 + 9999)
         total_r = 0.0
         done = False
         while not done:
@@ -117,11 +150,14 @@ def evaluate(model, n_episodes: int = 20, deterministic: bool = True):
 # Trajectory saving (for visualiser)
 # -----------------------------------------------------------------------
 
-def save_trajectories(model, save_dir: str, n: int = 3, prefix: str = "trace_trained"):
+def save_trajectories(model, save_dir: str, n: int = 5, prefix: str = "trace_hardcore",
+                      config=None, world_fn=None, ultra_hard: bool = False):
+    config = config or HARDCORE_CONFIG
+    world_fn = world_fn or build_hardcore_world
     paths = []
     for i in range(n):
-        env = VarahaSB3Env()
-        obs, _ = env.reset(seed=i * 42)
+        env = VarahaSB3Env(config=config, world_fn=world_fn, ultra_hard=ultra_hard)
+        obs, _ = env.reset(seed=i * 42 + 7777)
         done = False
         while not done:
             action, _ = model.predict(obs, deterministic=True)
@@ -130,7 +166,7 @@ def save_trajectories(model, save_dir: str, n: int = 3, prefix: str = "trace_tra
 
         out = os.path.join(save_dir, f"{prefix}_{i}.json")
         with open(out, "w") as f:
-            json.dump(env.get_trace(), f, indent=2)
+            json.dump(env.get_trace(), f)
         t = env.get_trace()["summary"]
         print(f"  {out}  steps={t['total_steps']}  reward={t['cumulative_reward']:.1f}  "
               f"delivered={t['delivered']}  success={t['success']}")
@@ -142,12 +178,35 @@ def save_trajectories(model, save_dir: str, n: int = 3, prefix: str = "trace_tra
 # Main training loop
 # -----------------------------------------------------------------------
 
-def train(total_timesteps: int = 10_000_000, n_envs: int = 64, save_dir: str = "./results"):
+def train(total_timesteps: int = 50_000_000, n_envs: int = 64,
+          save_dir: str = "./results_hardcore", time_limit_s: float = 5100,
+          v2: bool = False, custom_world_fn=None, custom_world_path: str = ""):
     os.makedirs(save_dir, exist_ok=True)
+
+    if v2:
+        config = HARDCORE_V2_CONFIG
+        world_fn = build_hardcore_world_v2
+        ultra_hard = True
+        net_arch = [1024, 512]
+        n_steps = 4096
+        batch_size = 2048
+        obs_dim = VarahaSB3Env.V2_OBS_DIM
+    else:
+        config = HARDCORE_CONFIG
+        world_fn = build_hardcore_world
+        ultra_hard = False
+        net_arch = [512, 512]
+        n_steps = 4096
+        batch_size = 2048
+        obs_dim = VarahaSB3Env.OBS_DIM
+
+    if custom_world_fn is not None:
+        world_fn = custom_world_fn
+        ultra_hard = False
 
     def make_env(rank):
         def _init():
-            env = VarahaSB3Env(world_fn=build_random_world)
+            env = VarahaSB3Env(config=config, world_fn=world_fn, ultra_hard=ultra_hard)
             env = Monitor(env)
             return env
         return _init
@@ -157,79 +216,109 @@ def train(total_timesteps: int = 10_000_000, n_envs: int = 64, save_dir: str = "
     model = PPO(
         "MlpPolicy",
         vec_env,
-        policy_kwargs=dict(net_arch=[256, 256]),
-        n_steps=2048,
-        batch_size=1024,
+        policy_kwargs=dict(net_arch=net_arch),
+        n_steps=n_steps,
+        batch_size=batch_size,
         n_epochs=10,
         learning_rate=3e-4,
         gamma=0.995,
         gae_lambda=0.95,
         clip_range=0.2,
-        ent_coef=0.01,
+        ent_coef=0.02,
         vf_coef=0.5,
         max_grad_norm=0.5,
         verbose=1,
         device="cuda",
     )
 
-    callback = MetricsCallback()
+    callback = MetricsCallback(time_limit_s=time_limit_s)
 
-    print("=" * 60)
-    print(f"  PPO Training — {total_timesteps:,} timesteps, {n_envs} envs (SubprocVecEnv)")
-    print("=" * 60)
+    print("=" * 70)
+    print(f"  PPO HARDCORE Training {'(V2 ULTRA)' if v2 else ''}")
+    print(f"  Network: {net_arch}  |  Obs dim: {obs_dim}")
+    print(f"  Timesteps: {total_timesteps:,}  |  Envs: {n_envs}  |  Time limit: {time_limit_s:.0f}s")
+    print(f"  batch_size={batch_size}  n_steps={n_steps}  ent_coef=0.02")
+    print(f"  Config: max_steps={config.max_episode_steps}  collision_penalty=500")
+    if custom_world_path:
+        print(f"  Custom world: {custom_world_path}")
+    print("=" * 70)
     t0 = time.time()
     model.learn(total_timesteps=total_timesteps, callback=callback)
     elapsed = time.time() - t0
     print(f"\n  Training done in {elapsed:.1f}s  ({len(callback.episode_rewards)} episodes)")
 
-    # Save model
-    model_path = os.path.join(save_dir, "ppo_varaha")
+    model_path = os.path.join(save_dir, "ppo_varaha_hardcore")
     model.save(model_path)
-    print(f"  Model saved → {model_path}.zip")
+    print(f"  Model saved -> {model_path}.zip")
 
-    # Reward curve
     if callback.episode_rewards:
         plot_rewards(
             callback.episode_rewards,
             callback.episode_timestamps,
-            os.path.join(save_dir, "reward_curve.png"),
+            os.path.join(save_dir, "reward_curve_hardcore.png"),
         )
 
-    # Evaluate
-    print("\n  Evaluating trained policy (20 episodes, deterministic)...")
-    metrics = evaluate(model, n_episodes=20)
-    metrics["training_timesteps"] = total_timesteps
+    print("\n  Evaluating trained policy (30 episodes, deterministic)...")
+    metrics = evaluate(model, n_episodes=30, config=config, world_fn=world_fn, ultra_hard=ultra_hard)
+    metrics["training_timesteps"] = callback._step_count
     metrics["training_seconds"] = round(elapsed, 1)
     metrics["training_episodes"] = len(callback.episode_rewards)
-    print(f"    mean_reward     = {metrics['mean_reward']:.1f} ± {metrics['std_reward']:.1f}")
+    metrics["obs_dim"] = obs_dim
+    metrics["net_arch"] = net_arch
+    print(f"    mean_reward     = {metrics['mean_reward']:.1f} +/- {metrics['std_reward']:.1f}")
     print(f"    mean_deliveries = {metrics['mean_deliveries']:.2f}")
     print(f"    success_rate    = {metrics['success_rate']:.2%}")
     print(f"    mean_length     = {metrics['mean_length']:.0f}")
 
-    metrics_path = os.path.join(save_dir, "metrics.json")
+    metrics_path = os.path.join(save_dir, "metrics_hardcore.json")
     with open(metrics_path, "w") as f:
         json.dump(metrics, f, indent=2)
-    print(f"  Metrics saved → {metrics_path}")
+    print(f"  Metrics saved -> {metrics_path}")
 
-    # Save trajectories for visualiser
-    print("\n  Saving trained trajectories...")
-    save_trajectories(model, save_dir, n=3, prefix="trace_trained")
+    print("\n  Saving hardcore trajectories...")
+    save_trajectories(model, save_dir, n=5, prefix="trace_hardcore",
+                      config=config, world_fn=world_fn, ultra_hard=ultra_hard)
 
-    # Also save an untrained trajectory for comparison
     print("\n  Saving untrained trajectory for comparison...")
-    untrained = PPO("MlpPolicy", DummyVecEnv([make_env(0)]), device="cpu")
-    save_trajectories(untrained, save_dir, n=1, prefix="trace_untrained")
+    untrained = PPO("MlpPolicy", DummyVecEnv([make_env(0)]),
+                    policy_kwargs=dict(net_arch=net_arch), device="cpu")
+    save_trajectories(untrained, save_dir, n=1, prefix="trace_untrained_hardcore",
+                      config=config, world_fn=world_fn, ultra_hard=ultra_hard)
 
-    print("\n" + "=" * 60)
-    print("  Done. Results in:", save_dir)
-    print("=" * 60)
+    vec_env.close()
+
+    print("\n" + "=" * 70)
+    print(f"  DONE. Results in: {save_dir}")
+    print(f"  Training time: {elapsed:.1f}s ({elapsed/60:.1f} min)")
+    print(f"  Total timesteps: {callback._step_count:,}")
+    print("=" * 70)
     return model
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Train PPO on Varaha")
-    parser.add_argument("--timesteps", type=int, default=10_000_000)
+    parser = argparse.ArgumentParser(description="Train PPO Hardcore on Varaha")
+    parser.add_argument("--timesteps", type=int, default=50_000_000)
     parser.add_argument("--n-envs", type=int, default=64)
-    parser.add_argument("--save-dir", type=str, default="./results")
+    parser.add_argument("--save-dir", type=str, default="./results_hardcore")
+    parser.add_argument("--time-limit", type=float, default=5100,
+                        help="Max training time in seconds (default 5100 = 85 min)")
+    parser.add_argument("--v2", action="store_true",
+                        help="Ultra-hard: [1024,512] net, 96 envs, 60M steps, 169-dim obs, 3500 max steps")
+    parser.add_argument(
+        "--world-json",
+        type=str,
+        default="",
+        help="Optional custom world JSON (trace/render_state/object export).",
+    )
     args = parser.parse_args()
-    train(total_timesteps=args.timesteps, n_envs=args.n_envs, save_dir=args.save_dir)
+
+    if args.v2:
+        args.timesteps = 60_000_000
+        args.n_envs = 96
+        args.save_dir = "./results_hardcore_v2"
+        args.time_limit = 5600
+
+    custom_world_fn = world_fn_from_json(args.world_json) if args.world_json else None
+    train(total_timesteps=args.timesteps, n_envs=args.n_envs,
+          save_dir=args.save_dir, time_limit_s=args.time_limit, v2=args.v2,
+          custom_world_fn=custom_world_fn, custom_world_path=args.world_json)

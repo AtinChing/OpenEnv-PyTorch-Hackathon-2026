@@ -1,0 +1,27 @@
+{
+  "origin": {
+    "lat": 38.55,
+    "lon": -121.47
+  },
+  "ionToken": "PASTE_YOUR_CESIUM_ION_TOKEN",
+  "googleMapsApiKey": "PASTE_YOUR_GOOGLE_MAPS_API_KEY",
+  "tileset": {
+    "ionAssetId": "",
+    "url": ""
+  },
+  "models": {
+    "drone": "/assets/models/drone/drone.glb",
+    "fire": "/assets/models/fire/fire.glb",
+    "building": "/assets/models/buildings/highrise.glb",
+    "park": "/assets/models/park/park_object.glb",
+    "responder": "/assets/models/responders/first_responder.glb"
+  },
+  "scales": {
+    "drone": 2.0,
+    "fire": 1.0,
+    "object": 1.0,
+    "responder": 1.0
+  },
+  "strictMode": true,
+  "parkThreshold": 180000
+}

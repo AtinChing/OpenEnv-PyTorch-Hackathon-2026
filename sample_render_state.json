@@ -1,16 +1,16 @@
 {
   "base_station": {
     "position": {
-      "x": 50.0,
-      "y": 50.0,
+      "x": 250.0,
+      "y": 250.0,
       "z": 0.0
     },
-    "recharge_radius": 20.0
+    "recharge_radius": 80.0
   },
   "drone": {
     "position": {
-      "x": 77.5,
-      "y": 63.75,
+      "x": 277.5,
+      "y": 263.75,
       "z": 6.875
     },
     "velocity": {
@@ -18,7 +18,7 @@
       "y": 5.0,
       "z": 2.5
     },
-    "battery": 98.0898,
+    "battery": 299.5605,
     "carrying_payload": true,
     "alive": true
   },
@@ -26,89 +26,110 @@
     {
       "id": "T1",
       "position": {
-        "x": 200.0,
-        "y": 80.0,
-        "z": 15.0
+        "x": 1800.0,
+        "y": 600.0,
+        "z": 30.0
       },
       "urgency": 0.6,
       "delivered": false,
-      "delivery_radius": 15.0
+      "delivery_radius": 80.0
     },
     {
       "id": "T2",
       "position": {
-        "x": 420.0,
-        "y": 320.0,
-        "z": 25.0
+        "x": 4100.0,
+        "y": 2900.0,
+        "z": 50.0
       },
       "urgency": 1.0,
       "delivered": false,
-      "delivery_radius": 15.0
+      "delivery_radius": 120.0
     },
     {
       "id": "T3",
       "position": {
-        "x": 150.0,
-        "y": 480.0,
-        "z": 10.0
+        "x": 1000.0,
+        "y": 4200.0,
+        "z": 20.0
       },
       "urgency": 0.8,
       "delivered": false,
-      "delivery_radius": 15.0
+      "delivery_radius": 100.0
     }
   ],
   "hazards": [
     {
       "id": "H1",
       "center": {
-        "x": 380.0,
-        "y": 300.0,
-        "z": 30.0
+        "x": 3800.0,
+        "y": 2600.0,
+        "z": 0.0
       },
-      "radius": 70.0,
-      "severity": 0.9
+      "radius": 500.0,
+      "severity": 0.9515908805880605,
+      "height": 77.232858882026,
+      "current_height": 77.28,
+      "growth_rate": 0.005
     },
     {
       "id": "H2",
       "center": {
-        "x": 120.0,
-        "y": 350.0,
-        "z": 20.0
+        "x": 900.0,
+        "y": 3200.0,
+        "z": 0.0
       },
-      "radius": 50.0,
-      "severity": 0.7
+      "radius": 400.0,
+      "severity": 0.6517833500585927,
+      "height": 53.68943108370894,
+      "current_height": 53.77,
+      "growth_rate": 0.008
     }
   ],
   "obstacles": [
     {
       "id": "O1",
       "min_corner": {
-        "x": 250.0,
-        "y": 150.0,
+        "x": 2200.0,
+        "y": 1000.0,
         "z": 0.0
       },
       "max_corner": {
-        "x": 300.0,
-        "y": 250.0,
-        "z": 60.0
-      }
+        "x": 2800.0,
+        "y": 2200.0,
+        "z": 120.0
+      },
+      "kind": "building"
     },
     {
       "id": "O2",
       "min_corner": {
-        "x": 80.0,
-        "y": 250.0,
+        "x": 500.0,
+        "y": 2600.0,
         "z": 0.0
       },
       "max_corner": {
-        "x": 160.0,
-        "y": 300.0,
-        "z": 45.0
-      }
+        "x": 1500.0,
+        "y": 3000.0,
+        "z": 90.0
+      },
+      "kind": "building"
     }
   ],
+  "cylinders": [],
+  "responders": [],
+  "mission": {
+    "enabled": false,
+    "total": 0,
+    "completed": 0,
+    "remaining": 0,
+    "progress": 1.0,
+    "violations": 0,
+    "next_instruction": null,
+    "instructions": []
+  },
+  "tool_history": [],
   "step": 10,
-  "max_steps": 500,
-  "cumulative_reward": -0.1369,
+  "max_steps": 2000,
+  "cumulative_reward": 0.9162,
   "done": false
 }

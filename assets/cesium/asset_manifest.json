@@ -1,0 +1,27 @@
+{
+  "origin": {
+    "lat": 38.55,
+    "lon": -121.47
+  },
+  "ionToken": "",
+  "googleMapsApiKey": "",
+  "tileset": {
+    "ionAssetId": "",
+    "url": ""
+  },
+  "models": {
+    "drone": "",
+    "fire": "",
+    "building": "",
+    "park": "",
+    "responder": ""
+  },
+  "scales": {
+    "drone": 2.0,
+    "fire": 1.0,
+    "object": 1.0,
+    "responder": 1.0
+  },
+  "strictMode": false,
+  "parkThreshold": 180000
+}

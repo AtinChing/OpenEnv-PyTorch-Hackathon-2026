@@ -63,6 +63,7 @@ class VarahaEnvironment(Environment[VarahaAction, VarahaObservation, VarahaState
             "az": action.az,
             "deliver": action.deliver,
             "recharge": action.recharge,
+            "tool_call": action.tool_call,
         }
         obs_dict, reward, done, info = self._env.step(action_dict)
         self._last_info = info
@@ -125,6 +126,8 @@ class VarahaEnvironment(Environment[VarahaAction, VarahaObservation, VarahaState
             alive=obs_dict["alive"],
             targets=obs_dict["targets"],
             hazards=obs_dict.get("hazards", []),
+            mission=obs_dict.get("mission", {}),
+            last_tool_result=obs_dict.get("last_tool_result", {}),
             step_num=obs_dict["step"],
             max_steps=obs_dict["max_steps"],
             reward_breakdown=info.get("reward_breakdown", {}),

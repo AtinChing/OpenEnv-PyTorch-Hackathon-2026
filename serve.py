@@ -10,12 +10,104 @@ Serves static files and provides an API to run simulations on demand.
 import json
 import random
 import os
+from pathlib import Path
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from typing import Any
 
 from sim_types import Vec3
 from varaha_env import VarahaEnv
 from czml_converter import trace_to_czml
+
+MODEL_ROOT = Path("assets/models")
+MODEL_EXTS = {".glb", ".gltf"}
+
+
+def _load_dotenv(dotenv_path: str = ".env") -> None:
+    """Load simple KEY=VALUE pairs from a .env file into os.environ.
+
+    - Ignores blank lines and comments.
+    - Does not override existing environment variables.
+    """
+    if not os.path.isfile(dotenv_path):
+        return
+
+    try:
+        with open(dotenv_path, "r", encoding="utf-8") as f:
+            for raw in f:
+                line = raw.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, value = line.split("=", 1)
+                key = key.strip()
+                value = value.strip()
+                if key.startswith("export "):
+                    key = key[len("export "):].strip()
+                if not key:
+                    continue
+                # Strip optional single/double quotes around value.
+                if len(value) >= 2 and (
+                    (value[0] == '"' and value[-1] == '"')
+                    or (value[0] == "'" and value[-1] == "'")
+                ):
+                    value = value[1:-1]
+                existing = os.environ.get(key)
+                if existing is None or str(existing).strip() == "":
+                    os.environ[key] = value
+    except OSError:
+        # Non-fatal: server can continue without .env
+        return
+
+
+def _to_web_path(path: Path) -> str:
+    return "/" + path.as_posix().lstrip("./")
+
+
+def _find_model_candidate(subdir: str) -> str:
+    """Find the first model in assets/models/<subdir> recursively."""
+    root = MODEL_ROOT / subdir
+    if not root.is_dir():
+        return ""
+
+    candidates = sorted(
+        (
+            p
+            for p in root.rglob("*")
+            if p.is_file() and p.suffix.lower() in MODEL_EXTS
+        ),
+        key=lambda p: p.as_posix().lower(),
+    )
+    if not candidates:
+        return ""
+    return _to_web_path(candidates[0])
+
+
+def _model_uri(env_key: str, subdir: str, fallback: str = "") -> str:
+    env_val = os.environ.get(env_key, "").strip()
+    if env_val:
+        return env_val
+
+    discovered = _find_model_candidate(subdir)
+    if discovered:
+        return discovered
+
+    return fallback.strip()
+
+
+def _client_config() -> dict[str, str]:
+    """Client-facing runtime config sourced from environment."""
+    return {
+        "googleMapsApiKey": os.environ.get("GOOGLE_MAPS_API_KEY", "").strip(),
+        "ionToken": os.environ.get("CESIUM_ION_TOKEN", "").strip(),
+        "originLat": os.environ.get("SIM_ORIGIN_LAT", "").strip(),
+        "originLon": os.environ.get("SIM_ORIGIN_LON", "").strip(),
+        "droneModelUri": _model_uri(
+            "DRONE_MODEL_URI", "drone", "/assets/models/drone/default_drone.glb"
+        ),
+        "fireModelUri": _model_uri("FIRE_MODEL_URI", "fire"),
+        "buildingModelUri": _model_uri("BUILDING_MODEL_URI", "building"),
+        "parkModelUri": _model_uri("PARK_MODEL_URI", "park"),
+        "responderModelUri": _model_uri("RESPONDER_MODEL_URI", "responder"),
+    }
 
 
 def _heuristic_action(obs: dict[str, Any], env: VarahaEnv) -> dict[str, Any]:
@@ -72,8 +164,8 @@ def run_simulation(method: str, seed: int | None = None, max_steps: int = 500) -
 def _find_trace_jsons():
     """Scan for JSON traces.
 
-    - Keep legacy behavior: include top-level project JSON files with "trace" in filename.
-    - Include every JSON file under results/ recursively.
+    - Legacy: top-level JSON files with "trace" in filename.
+    - Recursive: results/, results_hardcore/, results_hardcore_run1/, results_hardcore_v2/
     """
     traces = []
 
@@ -82,9 +174,11 @@ def _find_trace_jsons():
         if os.path.isfile(f) and f.lower().endswith(".json") and "trace" in f.lower():
             traces.append(f)
 
-    # Recursive results/** discovery.
-    if os.path.isdir("results"):
-        for root, _, files in os.walk("results"):
+    # Recursive discovery in results* directories.
+    for name in sorted(os.listdir(".")):
+        if not os.path.isdir(name) or not name.startswith("results"):
+            continue
+        for root, _, files in os.walk(name):
             for f in sorted(files):
                 if not f.lower().endswith(".json"):
                     continue
@@ -99,6 +193,12 @@ class VarahaHandler(SimpleHTTPRequestHandler):
         if self.path == "/api/traces":
             traces = _find_trace_jsons()
             payload = json.dumps(traces).encode()
+            self._json_response(payload)
+        elif self.path == "/api/client-config":
+            # Re-read .env on each config request so browser refresh picks up changes
+            # without requiring a server restart.
+            _load_dotenv(".env")
+            payload = json.dumps(_client_config()).encode()
             self._json_response(payload)
         elif self.path.startswith("/api/czml/"):
             trace_name = self.path[len("/api/czml/"):]
@@ -164,6 +264,7 @@ class ReusableHTTPServer(HTTPServer):
 
 if __name__ == "__main__":
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
+    _load_dotenv(".env")
     port = 9090
     server = ReusableHTTPServer(("", port), VarahaHandler)
     print(f"Varaha server running at http://localhost:{port}/visualizer.html")

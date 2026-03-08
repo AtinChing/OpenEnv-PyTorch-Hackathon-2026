@@ -210,6 +210,56 @@ def _hazard_packet(hazard: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _responder_packet(responder: dict[str, Any]) -> dict[str, Any]:
+    rid = responder["id"]
+    pos = responder["position"]
+    lon, lat, alt = _to_latlon(pos)
+    status = responder.get("status", "stable")
+    linked = responder.get("linked_target_id", "")
+    color = [255, 200, 100, 255] if status == "critical" else [255, 180, 80, 255] if status == "urgent" else [200, 200, 150, 255]
+    return {
+        "id": f"responder_{rid}",
+        "name": f"Responder {rid} ({status}) → {linked}",
+        "position": {"cartographicDegrees": [lon, lat, alt]},
+        "point": {
+            "color": {"rgba": color},
+            "pixelSize": 10,
+            "outlineColor": {"rgba": [255, 255, 255, 200]},
+            "outlineWidth": 1,
+        },
+        "label": {
+            "text": f"R{rid[-1]}",
+            "font": "11pt sans-serif",
+            "fillColor": {"rgba": color},
+            "style": "FILL",
+            "verticalOrigin": "BOTTOM",
+            "pixelOffset": {"cartesian2": [0, -12]},
+        },
+    }
+
+
+def _cylinder_packet(cylinder: dict[str, Any]) -> dict[str, Any]:
+    cid = cylinder["id"]
+    center = cylinder["center"]
+    lon, lat, _ = _to_latlon(center)
+    radius = cylinder.get("radius", 15.0)
+    height = cylinder.get("height", 50.0)
+    kind = cylinder.get("kind", "tree")
+    return {
+        "id": f"cylinder_{cid}",
+        "name": f"{kind} {cid}",
+        "position": {"cartographicDegrees": [lon, lat, 0]},
+        "cylinder": {
+            "length": height,
+            "topRadius": radius,
+            "bottomRadius": radius,
+            "material": {"solidColor": {"color": {"rgba": [80, 120, 60, 80]}}},
+            "outline": True,
+            "outlineColor": {"rgba": [60, 100, 40, 150]},
+        },
+    }
+
+
 def _obstacle_packet(obstacle: dict[str, Any]) -> dict[str, Any]:
     oid = obstacle["id"]
     mn = obstacle["min_corner"]
@@ -306,6 +356,12 @@ def trace_to_czml(trace_json: dict[str, Any], dt: float = 0.5) -> list[dict[str,
 
     for o in world.get("obstacles", []):
         packets.append(_obstacle_packet(o))
+
+    for c in world.get("cylinders", []):
+        packets.append(_cylinder_packet(c))
+
+    for r in world.get("responders", []):
+        packets.append(_responder_packet(r))
 
     packets.extend(_delivery_event_packets(trace, dt))
 

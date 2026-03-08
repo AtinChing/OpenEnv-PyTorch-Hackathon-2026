@@ -3,540 +3,1411 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Varaha — CesiumJS 3D Viewer</title>
+<title>Varaha — Cinematic Cesium Viewer</title>
 <script src="https://cesium.com/downloads/cesiumjs/releases/1.124/Build/Cesium/Cesium.js"></script>
 <link href="https://cesium.com/downloads/cesiumjs/releases/1.124/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
 <style>
-  *{margin:0;padding:0;box-sizing:border-box}
-  html,body{height:100%;font-family:'Segoe UI',system-ui,sans-serif;background:#0a0a0f;color:#e0e0e0;overflow:hidden}
+  :root {
+    --bg: #080a10;
+    --panel: rgba(12, 16, 24, 0.92);
+    --border: #202a3a;
+    --text: #dce8ff;
+    --muted: #8194b3;
+    --accent: #4fd3ff;
+    --warn: #ffbf5f;
+    --danger: #ff6b6b;
+    --ok: #58e295;
+  }
 
-  #cesiumContainer{position:absolute;top:0;left:0;right:320px;bottom:0}
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+  body {
+    font-family: "Outfit", "Segoe UI", system-ui, sans-serif;
+    background: radial-gradient(circle at 15% 10%, #0f1420 0%, #080a10 45%, #05070b 100%);
+    color: var(--text);
+  }
 
-  #sidebar{position:absolute;top:0;right:0;width:320px;bottom:0;background:#111118;
-    border-left:1px solid #2a2a35;display:flex;flex-direction:column;z-index:10}
-  #sidebar h2{padding:14px 16px 10px;font-size:15px;letter-spacing:.5px;color:#8af;
-    border-bottom:1px solid #222}
+  #app { position: relative; width: 100%; height: 100%; }
+  #cesiumContainer { position: absolute; top: 0; left: 0; right: 380px; bottom: 0; }
 
-  .section{padding:10px 16px;border-bottom:1px solid #1a1a25}
-  .section label{font-size:12px;color:#888;display:block;margin-bottom:4px}
-  .section select,.section button{width:100%;padding:8px 10px;border:1px solid #333;
-    border-radius:6px;background:#1a1a25;color:#ccc;font-size:13px;cursor:pointer}
-  .section select:focus,.section button:focus{outline:none;border-color:#5af}
-  .section button{background:#1a3a5a;border-color:#2a5a8a;color:#8cf;margin-top:4px;
-    transition:background .15s}
-  .section button:hover{background:#254a6a}
+  #sidebar {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 380px;
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    backdrop-filter: blur(6px);
+    display: flex;
+    flex-direction: column;
+    z-index: 20;
+  }
 
-  #controls{display:flex;gap:6px;padding:8px 16px;border-bottom:1px solid #1a1a25;align-items:center;flex-wrap:wrap}
-  #controls button{flex:0 0 auto;padding:6px 12px;border:1px solid #333;border-radius:6px;
-    background:#1a1a25;color:#ccc;font-size:13px;cursor:pointer}
-  #controls button:hover{background:#252535}
-  #controls button.active{background:#2a4a6a;border-color:#4a7aaa;color:#9cf}
-  #speedLabel{font-size:11px;color:#777;white-space:nowrap}
+  .head {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .head h1 {
+    font-size: 14px;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .badge {
+    font-size: 10px;
+    color: var(--muted);
+    border: 1px solid #2a394f;
+    border-radius: 999px;
+    padding: 2px 8px;
+  }
 
-  #camControls{display:flex;gap:4px;padding:4px 16px 8px;border-bottom:1px solid #1a1a25}
-  #camControls button{padding:5px 10px;border:1px solid #333;border-radius:5px;
-    background:#1a1a25;color:#aaa;font-size:11px;cursor:pointer;flex:1}
-  #camControls button:hover{background:#252535}
-  #camControls button.cam-active{background:#2a3a2a;border-color:#4a8a4a;color:#8e8}
+  .scroll {
+    overflow-y: auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
 
-  #eventLog{flex:1;overflow-y:auto;padding:8px 16px;font-size:12px;font-family:'Fira Mono',monospace}
-  #eventLog .evt{padding:3px 0;border-bottom:1px solid #151520}
-  #eventLog .evt-step{color:#666;min-width:40px;display:inline-block}
-  #eventLog .evt-delivery{color:#f0c040}
-  #eventLog .evt-hazard{color:#f06040}
-  #eventLog .evt-collision{color:#ff3030}
-  #eventLog .evt-success{color:#40e070}
-  #eventLog .evt-battery{color:#ff6060}
+  .card {
+    border: 1px solid var(--border);
+    background: rgba(10, 14, 22, 0.88);
+    border-radius: 10px;
+    padding: 10px;
+  }
+  .card h2 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.85px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
 
-  #summary{padding:10px 16px;border-top:1px solid #222;font-size:12px;line-height:1.7}
-  #summary span{display:inline-block;padding:1px 6px;border-radius:3px;margin-right:4px}
-  .tag-success{background:#1a3a1a;color:#5e5}
-  .tag-fail{background:#3a1a1a;color:#f66}
-  .tag-info{background:#1a2a3a;color:#8bf}
+  .row { display: flex; gap: 8px; }
+  .row + .row { margin-top: 8px; }
+  .row > * { flex: 1; }
 
-  .loading-overlay{position:absolute;top:0;left:0;right:320px;bottom:0;background:rgba(10,10,15,.85);
-    display:flex;align-items:center;justify-content:center;z-index:20;font-size:16px;color:#8af}
+  label {
+    display: block;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.45px;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+  }
+
+  input, select, button {
+    width: 100%;
+    background: #121a27;
+    color: var(--text);
+    border: 1px solid #2a3a52;
+    border-radius: 7px;
+    padding: 8px 9px;
+    font-size: 12px;
+  }
+
+  input::placeholder { color: #60708d; }
+
+  input[type="range"] {
+    padding: 0;
+    border: none;
+    background: transparent;
+    accent-color: var(--accent);
+  }
+
+  .btn {
+    cursor: pointer;
+    transition: all 0.15s ease;
+    background: #14263a;
+    border-color: #2b4b6f;
+    color: #a9dfff;
+    font-weight: 600;
+  }
+  .btn:hover { background: #1a3350; }
+  .btn.ghost {
+    background: #121a27;
+    border-color: #2a3a52;
+    color: #b2c5e1;
+  }
+  .btn.warn { border-color: #5e4a27; color: #ffd38b; background: #2a2114; }
+
+  .tiny { font-size: 11px; color: var(--muted); }
+
+  #eventLog {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #1d2a3b;
+    border-radius: 8px;
+    background: #0b1018;
+    padding: 8px;
+    font-family: "DM Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    line-height: 1.55;
+  }
+  .evt {
+    border-bottom: 1px solid #142030;
+    padding: 3px 0;
+    cursor: pointer;
+  }
+  .evt:hover { background: rgba(79, 211, 255, 0.08); }
+  .evt:last-child { border-bottom: none; }
+  .evt .s { color: #6e84a8; margin-right: 6px; }
+  .evt .delivery { color: #ffd369; }
+  .evt .hazard { color: #ff9068; }
+  .evt .danger { color: #ff6b6b; }
+  .evt .ok { color: #58e295; }
+
+  #summary {
+    border: 1px solid #1d2a3b;
+    border-radius: 8px;
+    background: #0b1018;
+    padding: 8px;
+    font-size: 12px;
+    line-height: 1.65;
+  }
+  #summary .k { color: var(--muted); margin-right: 5px; }
+
+  #status {
+    margin-top: 8px;
+    border-radius: 8px;
+    padding: 8px;
+    font-size: 12px;
+    border: 1px solid #26344b;
+    background: #10192a;
+    color: #b7c8e5;
+    white-space: pre-wrap;
+  }
+  .status-warn { border-color: #5a4730 !important; color: #ffce84 !important; background: #22190f !important; }
+  .status-danger { border-color: #603535 !important; color: #ff9e9e !important; background: #241314 !important; }
+  .status-ok { border-color: #2f5943 !important; color: #95efbe !important; background: #102117 !important; }
+
+  #overlay {
+    position: absolute;
+    left: 0;
+    right: 380px;
+    top: 0;
+    bottom: 0;
+    background: rgba(7, 10, 14, 0.82);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 25;
+    color: #a8d4ff;
+    font-size: 16px;
+    letter-spacing: 0.2px;
+  }
+
+  @media (max-width: 980px) {
+    #cesiumContainer, #overlay { right: 0; bottom: 45%; }
+    #sidebar {
+      width: 100%;
+      top: auto;
+      height: 45%;
+      border-left: none;
+      border-top: 1px solid var(--border);
+    }
+  }
 </style>
 </head>
 <body>
+<div id="app">
+  <div id="cesiumContainer"></div>
+  <div id="overlay">Load a trace and apply a high-fidelity asset config.</div>
 
-<div id="cesiumContainer"></div>
-<div id="loadingOverlay" class="loading-overlay">Select a trace to begin</div>
+  <aside id="sidebar">
+    <div class="head">
+      <h1>Varaha Cesium HQ</h1>
+      <div class="badge">Model-First</div>
+    </div>
 
-<div id="sidebar">
-  <h2>VARAHA 3D VIEWER</h2>
+    <div class="scroll">
+      <section class="card">
+        <h2>Trace</h2>
+        <label for="traceSelect">Trace File</label>
+        <select id="traceSelect"><option value="">Loading traces...</option></select>
+        <div class="row" style="margin-top:8px">
+          <button class="btn" id="loadTraceBtn">Load Trace</button>
+          <button class="btn ghost" id="refreshTracesBtn">Refresh</button>
+        </div>
+      </section>
 
-  <div class="section">
-    <label>Trace</label>
-    <select id="traceSelect"><option value="">— loading traces —</option></select>
-    <button id="loadBtn" disabled>Load Trace</button>
-  </div>
+      <section class="card">
+        <h2>Geo + Terrain</h2>
+        <div class="row">
+          <div>
+            <label for="originLat">Origin Lat</label>
+            <input id="originLat" type="number" step="0.000001" placeholder="38.55">
+          </div>
+          <div>
+            <label for="originLon">Origin Lon</label>
+            <input id="originLon" type="number" step="0.000001" placeholder="-121.47">
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="ionToken">Cesium Ion Token</label>
+            <input id="ionToken" type="password" placeholder="Required for World Terrain + Ion assets">
+          </div>
+          <div>
+            <label for="googleMapsApiKey">Google Maps API Key</label>
+            <input id="googleMapsApiKey" type="password" placeholder="Required for Google Photorealistic 3D Tiles">
+          </div>
+        </div>
+        <div class="row">
+          <div>
+            <label for="tilesetIonId">3D Tiles Ion Asset ID (optional)</label>
+            <input id="tilesetIonId" type="text" placeholder="e.g. 1234567">
+          </div>
+          <div>
+            <label for="tilesetUrl">3D Tiles URL (optional)</label>
+            <input id="tilesetUrl" type="text" placeholder="https://.../tileset.json">
+          </div>
+        </div>
+      </section>
 
-  <div id="controls">
-    <button id="playBtn" title="Play/Pause">&#9654;</button>
-    <button id="resetBtn" title="Reset to start">&#8634;</button>
-    <input id="speedSlider" type="range" min="1" max="200" value="20" style="flex:1">
-    <span id="speedLabel">20x</span>
-  </div>
-  <div id="camControls">
-    <button id="camOverview" class="cam-active" title="Birds-eye overview">Overview</button>
-    <button id="camFollow" title="Follow drone from behind">Follow</button>
-    <button id="camFPV" title="First-person drone view">FPV</button>
-  </div>
+      <section class="card">
+        <h2>High-Detail Assets</h2>
+        <label for="droneUri">Drone Model URI (.glb/.gltf)</label>
+        <input id="droneUri" type="text" placeholder="/assets/models/drone.glb">
 
-  <div class="section" id="summary"></div>
+        <label for="fireUri" style="margin-top:8px">Fire FX Model URI</label>
+        <input id="fireUri" type="text" placeholder="/assets/models/fire.glb">
 
-  <h2 style="font-size:13px">EVENT LOG</h2>
-  <div id="eventLog"></div>
+        <label for="buildingUri" style="margin-top:8px">Building Model URI</label>
+        <input id="buildingUri" type="text" placeholder="/assets/models/building.glb">
+
+        <label for="parkUri" style="margin-top:8px">Park Object Model URI</label>
+        <input id="parkUri" type="text" placeholder="/assets/models/park_object.glb">
+
+        <label for="responderUri" style="margin-top:8px">Responder Model URI</label>
+        <input id="responderUri" type="text" placeholder="/assets/models/responder.glb">
+
+        <div class="row" style="margin-top:8px">
+          <div>
+            <label for="droneScale">Drone Scale</label>
+            <input id="droneScale" type="number" step="0.01" min="0.01" placeholder="2.0">
+          </div>
+          <div>
+            <label for="fireScale">Fire Scale</label>
+            <input id="fireScale" type="number" step="0.01" min="0.01" placeholder="1.0">
+          </div>
+          <div>
+            <label for="objectScale">Object Scale</label>
+            <input id="objectScale" type="number" step="0.01" min="0.01" placeholder="1.0">
+          </div>
+          <div>
+            <label for="responderScale">Responder Scale</label>
+            <input id="responderScale" type="number" step="0.01" min="0.01" placeholder="1.0">
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:8px">
+          <div>
+            <label for="strictMode">Strict Cinematic Mode</label>
+            <select id="strictMode">
+              <option value="true" selected>ON (no primitive fallbacks)</option>
+              <option value="false">OFF (debug fallbacks allowed)</option>
+            </select>
+          </div>
+          <div>
+            <label for="parkThreshold">Park Threshold (m²)</label>
+            <input id="parkThreshold" type="number" step="1000" min="1000" placeholder="180000">
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:8px">
+          <button class="btn" id="applyConfigBtn">Apply Scene Config</button>
+          <button class="btn ghost" id="saveConfigBtn">Save Config</button>
+        </div>
+        <div class="tiny" style="margin-top:8px">
+          Auto-load priority: <code>.env</code> via <code>/api/client-config</code> then manifest then local saved settings.
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Playback</h2>
+        <div class="row">
+          <button class="btn ghost" id="stepBackBtn">Prev</button>
+          <button class="btn" id="playPauseBtn">Play</button>
+          <button class="btn ghost" id="stepFwdBtn">Next</button>
+          <button class="btn ghost" id="resetBtn">Reset</button>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <div>
+            <label for="frameSlider">Frame</label>
+            <input id="frameSlider" type="range" min="0" max="0" value="0">
+          </div>
+          <div>
+            <label for="speedSlider">Speed</label>
+            <input id="speedSlider" type="range" min="1" max="120" value="20">
+            <div class="tiny" id="speedLabel">20x</div>
+          </div>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button class="btn ghost" id="camOverviewBtn">Overview</button>
+          <button class="btn ghost" id="camFollowBtn">Follow</button>
+          <button class="btn ghost" id="camFPVBtn">FPV</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Summary</h2>
+        <div id="summary">No trace loaded.</div>
+      </section>
+
+      <section class="card">
+        <h2>Events</h2>
+        <div id="eventLog"></div>
+      </section>
+
+      <section class="card">
+        <h2>Status</h2>
+        <div id="status">Ready.</div>
+      </section>
+    </div>
+  </aside>
 </div>
 
 <script>
 (function(){
-  /* ── CesiumJS setup ─────────────────────────────────────────────── */
+  const STORAGE_KEY = 'varaha.cesium.hq.config.v1';
+  const MANIFEST_URL = '/assets/cesium/asset_manifest.json';
+  const SERVER_CONFIG_URL = '/api/client-config';
+  const DEFAULT_DRONE_MODEL_URI = '/assets/models/drone/default_drone.glb';
+  const DEFAULT_ION_TOKEN = '';
+  const DEFAULT_GOOGLE_MAPS_API_KEY = '';
+  const DEFAULT_CFG = {
+    origin: { lat: 34.0522, lon: -118.2437 },
+    ionToken: DEFAULT_ION_TOKEN,
+    googleMapsApiKey: DEFAULT_GOOGLE_MAPS_API_KEY,
+    tileset: { ionAssetId: '', url: '' },
+    models: {
+      drone: DEFAULT_DRONE_MODEL_URI,
+      fire: '',
+      building: '',
+      park: '',
+      responder: '',
+    },
+    scales: {
+      drone: 2.0,
+      fire: 1.0,
+      object: 1.0,
+      responder: 1.0,
+    },
+    strictMode: false,
+    parkThreshold: 180000,
+  };
 
-  // Globe setup — use OSM imagery on a real 3D globe (no Ion token required)
-  Cesium.Ion.defaultAccessToken = undefined;
+  const M_PER_DEG_LAT = 111320.0;
+
+  const state = {
+    data: null,
+    cfg: structuredClone(DEFAULT_CFG),
+    startTime: null,
+    stopTime: null,
+    dt: 0.5,
+    frameIndex: 0,
+    droneEntity: null,
+    fpvTickRemover: null,
+    tilesetPrimitive: null,
+    sceneSphere: null,
+  };
+
+  const el = {
+    overlay: document.getElementById('overlay'),
+    traceSelect: document.getElementById('traceSelect'),
+    loadTraceBtn: document.getElementById('loadTraceBtn'),
+    refreshTracesBtn: document.getElementById('refreshTracesBtn'),
+
+    originLat: document.getElementById('originLat'),
+    originLon: document.getElementById('originLon'),
+    ionToken: document.getElementById('ionToken'),
+    googleMapsApiKey: document.getElementById('googleMapsApiKey'),
+    tilesetIonId: document.getElementById('tilesetIonId'),
+    tilesetUrl: document.getElementById('tilesetUrl'),
+
+    droneUri: document.getElementById('droneUri'),
+    fireUri: document.getElementById('fireUri'),
+    buildingUri: document.getElementById('buildingUri'),
+    parkUri: document.getElementById('parkUri'),
+    responderUri: document.getElementById('responderUri'),
+
+    droneScale: document.getElementById('droneScale'),
+    fireScale: document.getElementById('fireScale'),
+    objectScale: document.getElementById('objectScale'),
+    responderScale: document.getElementById('responderScale'),
+    strictMode: document.getElementById('strictMode'),
+    parkThreshold: document.getElementById('parkThreshold'),
+
+    applyConfigBtn: document.getElementById('applyConfigBtn'),
+    saveConfigBtn: document.getElementById('saveConfigBtn'),
+
+    playPauseBtn: document.getElementById('playPauseBtn'),
+    stepBackBtn: document.getElementById('stepBackBtn'),
+    stepFwdBtn: document.getElementById('stepFwdBtn'),
+    resetBtn: document.getElementById('resetBtn'),
+    frameSlider: document.getElementById('frameSlider'),
+    speedSlider: document.getElementById('speedSlider'),
+    speedLabel: document.getElementById('speedLabel'),
+
+    camOverviewBtn: document.getElementById('camOverviewBtn'),
+    camFollowBtn: document.getElementById('camFollowBtn'),
+    camFPVBtn: document.getElementById('camFPVBtn'),
+
+    summary: document.getElementById('summary'),
+    eventLog: document.getElementById('eventLog'),
+    status: document.getElementById('status'),
+  };
 
   const viewer = new Cesium.Viewer('cesiumContainer', {
-    imageryProvider: new Cesium.OpenStreetMapImageryProvider({
-      url: 'https://tile.openstreetmap.org/'
-    }),
+    animation: false,
+    timeline: true,
     baseLayerPicker: false,
     geocoder: false,
     homeButton: false,
     sceneModePicker: true,
     navigationHelpButton: false,
-    animation: false,
-    timeline: true,
     fullscreenButton: false,
-    vrButton: false,
     infoBox: true,
     selectionIndicator: true,
+    requestRenderMode: false,
     shouldAnimate: false,
-    skyBox: new Cesium.SkyBox({
-      sources: {
-        positiveX: 'https://cesium.com/downloads/cesiumjs/releases/1.124/Build/Cesium/Assets/Textures/SkyBox/tycho2t3_80_px.jpg',
-        negativeX: 'https://cesium.com/downloads/cesiumjs/releases/1.124/Build/Cesium/Assets/Textures/SkyBox/tycho2t3_80_mx.jpg',
-        positiveY: 'https://cesium.com/downloads/cesiumjs/releases/1.124/Build/Cesium/Assets/Textures/SkyBox/tycho2t3_80_py.jpg',
-        negativeY: 'https://cesium.com/downloads/cesiumjs/releases/1.124/Build/Cesium/Assets/Textures/SkyBox/tycho2t3_80_my.jpg',
-        positiveZ: 'https://cesium.com/downloads/cesiumjs/releases/1.124/Build/Cesium/Assets/Textures/SkyBox/tycho2t3_80_pz.jpg',
-        negativeZ: 'https://cesium.com/downloads/cesiumjs/releases/1.124/Build/Cesium/Assets/Textures/SkyBox/tycho2t3_80_mz.jpg',
-      }
-    }),
   });
 
   viewer.scene.globe.enableLighting = true;
+  viewer.scene.globe.depthTestAgainstTerrain = true;
   viewer.scene.skyAtmosphere.show = true;
-  viewer.scene.globe.depthTestAgainstTerrain = false;
-  viewer.scene.backgroundColor = Cesium.Color.BLACK;
+  viewer.scene.postProcessStages.fxaa.enabled = true;
+  viewer.shadows = true;
 
+  function setStatus(text, kind) {
+    el.status.textContent = text;
+    el.status.classList.remove('status-warn', 'status-danger', 'status-ok');
+    if (kind === 'warn') el.status.classList.add('status-warn');
+    if (kind === 'danger') el.status.classList.add('status-danger');
+    if (kind === 'ok') el.status.classList.add('status-ok');
+  }
 
-  /* ── DOM refs ────────────────────────────────────────────────────── */
-
-  const traceSelect   = document.getElementById('traceSelect');
-  const loadBtn       = document.getElementById('loadBtn');
-  const playBtn       = document.getElementById('playBtn');
-  const resetBtn      = document.getElementById('resetBtn');
-  const speedSlider   = document.getElementById('speedSlider');
-  const speedLabel    = document.getElementById('speedLabel');
-  const eventLog      = document.getElementById('eventLog');
-  const summaryEl     = document.getElementById('summary');
-  const loadingOverlay= document.getElementById('loadingOverlay');
-  const camOverview   = document.getElementById('camOverview');
-  const camFollow     = document.getElementById('camFollow');
-  const camFPV        = document.getElementById('camFPV');
-
-  let isPlaying = false;
-  let currentCzml = null;
-  let camMode = 'overview'; // 'overview' | 'follow' | 'fpv'
-  let tickHandler = null;
-
-  /* ── Populate trace list ─────────────────────────────────────────── */
-
-  fetch('/api/traces')
-    .then(r => r.json())
-    .then(names => {
-      traceSelect.innerHTML = '<option value="">— select a trace —</option>';
-      names.forEach(n => {
-        const opt = document.createElement('option');
-        opt.value = n; opt.textContent = n;
-        traceSelect.appendChild(opt);
-      });
-      loadBtn.disabled = false;
-    })
-    .catch(()=>{
-      traceSelect.innerHTML = '<option value="">Failed to load traces</option>';
-    });
-
-  /* ── Coordinate conversion (mirrors Python) ─────────────────────── */
-
-  const ORIGIN_LAT = 38.55, ORIGIN_LON = -121.47;
-  const M_PER_DEG_LAT = 111320.0;
-  const M_PER_DEG_LON = 111320.0 * Math.cos(ORIGIN_LAT * Math.PI / 180);
-
-  // Start camera looking at the California operations area
-  viewer.camera.setView({
-    destination: Cesium.Cartesian3.fromDegrees(ORIGIN_LON, ORIGIN_LAT, 50000),
-    orientation: {
-      heading: 0,
-      pitch: Cesium.Math.toRadians(-70),
-      roll: 0,
+  function deepMerge(base, add) {
+    if (typeof add !== 'object' || add === null) return base;
+    const out = Array.isArray(base) ? base.slice() : { ...base };
+    for (const [k, v] of Object.entries(add)) {
+      if (v && typeof v === 'object' && !Array.isArray(v) && out[k] && typeof out[k] === 'object') {
+        out[k] = deepMerge(out[k], v);
+      } else {
+        out[k] = v;
+      }
     }
-  });
+    return out;
+  }
 
-  function toLatLon(pos){
+  function nonEmpty(value) {
+    return typeof value === 'string' && value.trim() !== '';
+  }
+
+  function finiteNumber(value) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function activeDroneAssetLabel() {
+    return nonEmpty(state.cfg.models?.drone) ? state.cfg.models.drone : 'fallback marker';
+  }
+
+  function applyDefaultAutofillCfg() {
+    if (!nonEmpty(state.cfg.models?.drone)) {
+      state.cfg.models.drone = DEFAULT_DRONE_MODEL_URI;
+    }
+    if (state.cfg.strictMode) {
+      const strictRequired = ['drone', 'fire', 'building', 'park', 'responder'];
+      const missingStrictAsset = strictRequired.some((k) => !nonEmpty(state.cfg.models?.[k]));
+      if (missingStrictAsset) state.cfg.strictMode = false;
+    }
+  }
+
+  function cfgFromInputs() {
     return {
-      lat: ORIGIN_LAT + pos.y / M_PER_DEG_LAT,
-      lon: ORIGIN_LON + pos.x / M_PER_DEG_LON,
-      alt: pos.z || 0,
+      origin: {
+        lat: Number(el.originLat.value) || DEFAULT_CFG.origin.lat,
+        lon: Number(el.originLon.value) || DEFAULT_CFG.origin.lon,
+      },
+      ionToken: (el.ionToken.value || '').trim(),
+      googleMapsApiKey: (el.googleMapsApiKey.value || '').trim(),
+      tileset: {
+        ionAssetId: (el.tilesetIonId.value || '').trim(),
+        url: (el.tilesetUrl.value || '').trim(),
+      },
+      models: {
+        drone: (el.droneUri.value || '').trim(),
+        fire: (el.fireUri.value || '').trim(),
+        building: (el.buildingUri.value || '').trim(),
+        park: (el.parkUri.value || '').trim(),
+        responder: (el.responderUri.value || '').trim(),
+      },
+      scales: {
+        drone: Math.max(0.01, Number(el.droneScale.value) || DEFAULT_CFG.scales.drone),
+        fire: Math.max(0.01, Number(el.fireScale.value) || DEFAULT_CFG.scales.fire),
+        object: Math.max(0.01, Number(el.objectScale.value) || DEFAULT_CFG.scales.object),
+        responder: Math.max(0.01, Number(el.responderScale.value) || DEFAULT_CFG.scales.responder),
+      },
+      strictMode: el.strictMode.value === 'true',
+      parkThreshold: Math.max(1000, Number(el.parkThreshold.value) || DEFAULT_CFG.parkThreshold),
     };
   }
 
-  /* ── Client-side CZML builder ────────────────────────────────────── */
+  function cfgToInputs(cfg) {
+    el.originLat.value = cfg.origin.lat;
+    el.originLon.value = cfg.origin.lon;
+    el.ionToken.value = cfg.ionToken || '';
+    el.googleMapsApiKey.value = cfg.googleMapsApiKey || '';
+    el.tilesetIonId.value = cfg.tileset.ionAssetId || '';
+    el.tilesetUrl.value = cfg.tileset.url || '';
 
-  function isoTime(step, dt){
-    const t = step * dt;
-    const h = String(Math.floor(t/3600)).padStart(2,'0');
-    const m = String(Math.floor((t%3600)/60)).padStart(2,'0');
-    const s = (t%60).toFixed(2).padStart(5,'0');
-    return `2026-01-01T${h}:${m}:${s}Z`;
+    el.droneUri.value = cfg.models.drone || '';
+    el.fireUri.value = cfg.models.fire || '';
+    el.buildingUri.value = cfg.models.building || '';
+    el.parkUri.value = cfg.models.park || '';
+    el.responderUri.value = cfg.models.responder || '';
+
+    el.droneScale.value = cfg.scales.drone;
+    el.fireScale.value = cfg.scales.fire;
+    el.objectScale.value = cfg.scales.object;
+    el.responderScale.value = cfg.scales.responder;
+
+    el.strictMode.value = cfg.strictMode ? 'true' : 'false';
+    el.parkThreshold.value = cfg.parkThreshold;
   }
 
-  function traceToCZML(data){
-    const world = data.world, trace = data.trace, summary = data.summary || {};
-    const totalSteps = summary.total_steps || trace.length;
-    const dt = 0.5;
-    const start = isoTime(0, dt), end = isoTime(totalSteps, dt);
-
-    const packets = [{
-      id:'document', name:'Varaha Wildfire Logistics', version:'1.0',
-      clock:{interval:`${start}/${end}`, currentTime:start, multiplier:20,
-             range:'LOOP_STOP', step:'SYSTEM_CLOCK_MULTIPLIER'}
-    }];
-
-    // Drone path
-    const cart = [];
-    trace.forEach(pt=>{
-      const s = pt.step * dt;
-      const ll = toLatLon(pt.position);
-      cart.push(s, ll.lon, ll.lat, ll.alt);
-    });
-    packets.push({
-      id:'drone', name:'Delivery Drone',
-      availability:`${start}/${end}`,
-      position:{epoch:start, cartographicDegrees:cart,
-                interpolationAlgorithm:'LAGRANGE', interpolationDegree:1},
-      point:{color:{rgba:[0,200,255,255]}, pixelSize:14,
-             outlineColor:{rgba:[255,255,255,255]}, outlineWidth:2,
-             heightReference:'NONE'},
-      path:{material:{solidColor:{color:{rgba:[0,180,255,140]}}},
-            width:3, leadTime:0, trailTime:totalSteps*dt},
-      label:{text:'Drone', font:'13pt sans-serif',
-             fillColor:{rgba:[255,255,255,255]},
-             outlineColor:{rgba:[0,0,0,220]}, outlineWidth:2,
-             style:'FILL_AND_OUTLINE', verticalOrigin:'BOTTOM',
-             pixelOffset:{cartesian2:[0,-18]},
-             showBackground:true,
-             backgroundColor:{rgba:[0,40,80,180]}},
-    });
-
-    // Base
-    const bs = world.base_station;
-    const bll = toLatLon(bs.position);
-    packets.push({
-      id:'base_station', name:'Base Station',
-      position:{cartographicDegrees:[bll.lon, bll.lat, bll.alt]},
-      point:{color:{rgba:[0,200,0,255]}, pixelSize:14,
-             outlineColor:{rgba:[255,255,255,255]}, outlineWidth:2},
-      ellipse:{semiMajorAxis:bs.recharge_radius||80, semiMinorAxis:bs.recharge_radius||80,
-               height:0, material:{solidColor:{color:{rgba:[0,200,0,40]}}},
-               outline:true, outlineColor:{rgba:[0,200,0,120]}},
-      label:{text:'Base', font:'13pt sans-serif',
-             fillColor:{rgba:[0,230,0,255]}, style:'FILL',
-             verticalOrigin:'BOTTOM', pixelOffset:{cartesian2:[0,-16]}}
-    });
-
-    // Targets
-    (world.targets||[]).forEach(t=>{
-      const ll = toLatLon(t.position);
-      const u = t.urgency || 0.5;
-      const del = t.delivered;
-      const r = Math.round(255*u), g = Math.round(100*(1-u));
-      const c = del ? [80,200,80,200] : [r,g,40,255];
-      const zc = del ? [80,200,80,25] : [r,g,40,30];
-      const rad = t.delivery_radius || 80;
-      packets.push({
-        id:`target_${t.id}`, name:`Target ${t.id} (urg=${u.toFixed(1)})`,
-        position:{cartographicDegrees:[ll.lon, ll.lat, ll.alt]},
-        point:{color:{rgba:c}, pixelSize:12,
-               outlineColor:{rgba:[255,255,255,200]}, outlineWidth:1},
-        ellipse:{semiMajorAxis:rad, semiMinorAxis:rad, height:0,
-                 extrudedHeight:ll.alt,
-                 material:{solidColor:{color:{rgba:zc}}},
-                 outline:true, outlineColor:{rgba:[...c.slice(0,3),100]}},
-        label:{text:t.id, font:'12pt sans-serif', fillColor:{rgba:c},
-               style:'FILL', verticalOrigin:'BOTTOM',
-               pixelOffset:{cartesian2:[0,-14]}}
-      });
-    });
-
-    // Hazards
-    (world.hazards||[]).forEach(h=>{
-      const ll = toLatLon(h.center);
-      const ht = h.current_height || h.height || 80;
-      const sev = h.severity || 0.5;
-      const r2 = Math.round(200+55*sev), a = Math.round(30+40*sev);
-      packets.push({
-        id:`hazard_${h.id}`, name:`Hazard ${h.id} (sev=${sev.toFixed(1)})`,
-        position:{cartographicDegrees:[ll.lon, ll.lat, 0]},
-        cylinder:{length:ht, topRadius:h.radius*0.4, bottomRadius:h.radius,
-                  material:{solidColor:{color:{rgba:[r2,60,0,a]}}},
-                  outline:true, outlineColor:{rgba:[r2,60,0,100]},
-                  numberOfVerticalLines:0},
-        label:{text:h.id, font:'12pt sans-serif',
-               fillColor:{rgba:[255,100,0,255]}, style:'FILL',
-               verticalOrigin:'BOTTOM', pixelOffset:{cartesian2:[0,-14]}}
-      });
-    });
-
-    // Obstacles
-    (world.obstacles||[]).forEach(o=>{
-      const mn = o.min_corner, mx = o.max_corner;
-      const ht = (mx.z||0) - (mn.z||0);
-      const corners = [
-        {x:mn.x,y:mn.y,z:0},{x:mx.x,y:mn.y,z:0},
-        {x:mx.x,y:mx.y,z:0},{x:mn.x,y:mx.y,z:0}
-      ];
-      const pos = [];
-      corners.forEach(c=>{const ll=toLatLon(c); pos.push(ll.lon,ll.lat,0);});
-      packets.push({
-        id:`obstacle_${o.id}`, name:`Obstacle ${o.id}`,
-        polygon:{positions:{cartographicDegrees:pos}, height:0, extrudedHeight:ht,
-                 material:{solidColor:{color:{rgba:[120,120,120,60]}}},
-                 outline:true, outlineColor:{rgba:[180,180,180,150]}}
-      });
-    });
-
-    // Delivery events
-    trace.forEach(pt=>{
-      (pt.events||[]).forEach(evt=>{
-        if(!evt.startsWith('delivered_')) return;
-        const tid = evt.replace('delivered_','');
-        const ll = toLatLon(pt.position);
-        packets.push({
-          id:`delivery_event_${tid}_s${pt.step}`,
-          name:`Delivered ${tid}`,
-          position:{cartographicDegrees:[ll.lon, ll.lat, ll.alt]},
-          point:{color:{rgba:[255,220,0,255]}, pixelSize:16,
-                 outlineColor:{rgba:[255,255,255,255]}, outlineWidth:2},
-          label:{text:`Delivered ${tid}`, font:'13pt sans-serif',
-                 fillColor:{rgba:[255,220,0,255]},
-                 outlineColor:{rgba:[0,0,0,200]}, outlineWidth:2,
-                 style:'FILL_AND_OUTLINE', verticalOrigin:'BOTTOM',
-                 pixelOffset:{cartesian2:[0,-20]},
-                 showBackground:true, backgroundColor:{rgba:[0,0,0,150]}}
-        });
-      });
-    });
-
-    return packets;
+  function loadSavedCfg() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      state.cfg = deepMerge(state.cfg, parsed);
+    } catch (err) {
+      console.warn('Failed to load local config', err);
+    }
   }
 
-  /* ── Load & display ──────────────────────────────────────────────── */
+  async function loadManifestCfg() {
+    try {
+      const resp = await fetch(MANIFEST_URL, { cache: 'no-store' });
+      if (!resp.ok) return;
+      const manifest = await resp.json();
+      state.cfg = deepMerge(state.cfg, manifest);
+      setStatus('Loaded /assets/cesium/asset_manifest.json', 'ok');
+    } catch (err) {
+      // No manifest is fine.
+    }
+  }
 
-  function showSummary(data){
+  async function loadServerCfg() {
+    try {
+      const resp = await fetch(SERVER_CONFIG_URL, { cache: 'no-store' });
+      if (!resp.ok) return;
+      const serverCfg = await resp.json();
+      const patch = {};
+      const loaded = [];
+      if (nonEmpty(serverCfg.googleMapsApiKey)) {
+        patch.googleMapsApiKey = serverCfg.googleMapsApiKey.trim();
+        loaded.push('Google key');
+      }
+      if (nonEmpty(serverCfg.ionToken)) {
+        patch.ionToken = serverCfg.ionToken.trim();
+        loaded.push('Ion token');
+      }
+
+      const originLat = finiteNumber(serverCfg.originLat);
+      const originLon = finiteNumber(serverCfg.originLon);
+      if (originLat !== null || originLon !== null) {
+        patch.origin = {};
+        if (originLat !== null) patch.origin.lat = originLat;
+        if (originLon !== null) patch.origin.lon = originLon;
+        loaded.push('origin');
+      }
+
+      const modelPatch = {};
+      if (nonEmpty(serverCfg.droneModelUri)) modelPatch.drone = serverCfg.droneModelUri.trim();
+      if (nonEmpty(serverCfg.fireModelUri)) modelPatch.fire = serverCfg.fireModelUri.trim();
+      if (nonEmpty(serverCfg.buildingModelUri)) modelPatch.building = serverCfg.buildingModelUri.trim();
+      if (nonEmpty(serverCfg.parkModelUri)) modelPatch.park = serverCfg.parkModelUri.trim();
+      if (nonEmpty(serverCfg.responderModelUri)) modelPatch.responder = serverCfg.responderModelUri.trim();
+      if (Object.keys(modelPatch).length > 0) {
+        patch.models = modelPatch;
+        loaded.push('model URIs');
+      }
+
+      if (Object.keys(patch).length > 0) {
+        state.cfg = deepMerge(state.cfg, patch);
+        applyDefaultAutofillCfg();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state.cfg));
+        setStatus(`Loaded ${loaded.join(', ')} from server .env config.`, 'ok');
+      }
+    } catch (err) {
+      // Non-fatal: keep local/manifest config.
+    }
+  }
+
+  function persistCfg() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.cfg));
+  }
+
+  function saveCfg() {
+    state.cfg = cfgFromInputs();
+    applyDefaultAutofillCfg();
+    persistCfg();
+    cfgToInputs(state.cfg);
+    setStatus('Configuration saved locally.', 'ok');
+  }
+
+  function metersPerDegreeLon(latDeg) {
+    return 111320.0 * Math.cos(Cesium.Math.toRadians(latDeg));
+  }
+
+  function localToCartesian(pos) {
+    const lat = state.cfg.origin.lat + (Number(pos?.y) || 0) / M_PER_DEG_LAT;
+    const lon = state.cfg.origin.lon + (Number(pos?.x) || 0) / metersPerDegreeLon(state.cfg.origin.lat);
+    const alt = Number(pos?.z) || 0;
+    return Cesium.Cartesian3.fromDegrees(lon, lat, alt);
+  }
+
+  function localXYToCartesian(x, y, z) {
+    return localToCartesian({ x, y, z });
+  }
+
+  function setupClockFromTrace(trace) {
+    const totalFrames = trace.length;
+    state.dt = 0.5;
+    state.startTime = Cesium.JulianDate.fromIso8601('2026-01-01T00:00:00Z');
+    state.stopTime = Cesium.JulianDate.addSeconds(
+      state.startTime,
+      Math.max(0, totalFrames - 1) * state.dt,
+      new Cesium.JulianDate()
+    );
+
+    viewer.clock.startTime = state.startTime.clone();
+    viewer.clock.stopTime = state.stopTime.clone();
+    viewer.clock.currentTime = state.startTime.clone();
+    viewer.clock.clockRange = Cesium.ClockRange.CLAMPED;
+    viewer.clock.multiplier = Number(el.speedSlider.value) || 20;
+    viewer.clock.shouldAnimate = false;
+    viewer.timeline.zoomTo(state.startTime, state.stopTime);
+  }
+
+  function headingFromId(id) {
+    let h = 0;
+    for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) & 0xffff;
+    return ((h % 360) * Math.PI) / 180;
+  }
+
+  function clearSceneObjects() {
+    viewer.entities.removeAll();
+    viewer.trackedEntity = undefined;
+    state.droneEntity = null;
+    state.sceneSphere = null;
+    if (state.tilesetPrimitive) {
+      viewer.scene.primitives.remove(state.tilesetPrimitive);
+      state.tilesetPrimitive = null;
+    }
+    if (state.fpvTickRemover) {
+      state.fpvTickRemover();
+      state.fpvTickRemover = null;
+    }
+    viewer.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
+  }
+
+  async function applyTerrainAndImagery() {
+    state.cfg = cfgFromInputs();
+    applyDefaultAutofillCfg();
+    persistCfg();
+    cfgToInputs(state.cfg);
+    const token = (state.cfg.ionToken || '').trim();
+    viewer.imageryLayers.removeAll();
+    // Google-photoreal mode baseline: do not depend on Cesium ion terrain/imagery.
+    // This avoids ion 401 failures when only Google tiles are desired.
+    viewer.terrainProvider = new Cesium.EllipsoidTerrainProvider();
+    if (token) {
+      Cesium.Ion.defaultAccessToken = token;
+    } else {
+      Cesium.Ion.defaultAccessToken = undefined;
+    }
+    setStatus('Google-photoreal mode active. Awaiting Google 3D tiles load.', 'ok');
+  }
+
+  async function applyTileset() {
+    if (state.tilesetPrimitive) {
+      viewer.scene.primitives.remove(state.tilesetPrimitive);
+      state.tilesetPrimitive = null;
+    }
+
+    const ionId = (state.cfg.tileset.ionAssetId || '').trim();
+    const url = (state.cfg.tileset.url || '').trim();
+    const googleKey = (state.cfg.googleMapsApiKey || '').trim();
+
+    let customErr = null;
+
+    // If custom tileset fields are set, try those first.
+    if (ionId || url) {
+      try {
+        let customTileset;
+        if (ionId) {
+          const parsed = Number(ionId);
+          if (!Number.isFinite(parsed)) throw new Error('Tileset Ion Asset ID is not a number.');
+          customTileset = await Cesium.Cesium3DTileset.fromIonAssetId(parsed);
+        } else {
+          customTileset = await Cesium.Cesium3DTileset.fromUrl(url);
+        }
+        state.tilesetPrimitive = viewer.scene.primitives.add(customTileset);
+        await customTileset.readyPromise;
+        viewer.scene.globe.show = false;
+        setStatus('Custom 3D Tileset loaded successfully.', 'ok');
+        return;
+      } catch (err) {
+        customErr = err;
+      }
+    }
+
+    // Default path: Google Photorealistic 3D Tiles.
+    try {
+      if (Cesium.GoogleMaps && Cesium.GoogleMaps.mapTilesApiEndpoint) {
+        Cesium.GoogleMaps.mapTilesApiEndpoint = 'https://tile.googleapis.com/v1/';
+      }
+      if (googleKey) {
+        if (Cesium.GoogleMaps) Cesium.GoogleMaps.defaultApiKey = googleKey;
+      } else if (Cesium.GoogleMaps) {
+        Cesium.GoogleMaps.defaultApiKey = undefined;
+      }
+
+      const googleOpts = { onlyUsingWithGoogleGeocoder: true };
+      if (googleKey) googleOpts.key = googleKey;
+      const googleTileset = await Cesium.createGooglePhotorealistic3DTileset(googleOpts);
+
+      state.tilesetPrimitive = viewer.scene.primitives.add(googleTileset);
+      await googleTileset.readyPromise;
+      viewer.scene.globe.show = false;
+
+      if (customErr) {
+        setStatus(
+          'Custom tileset failed; using Google Photorealistic 3D Tiles instead.\n' +
+          String(customErr.message || customErr),
+          'warn'
+        );
+      } else if (googleKey) {
+        setStatus('Google Photorealistic 3D Tiles loaded with your Google Maps API key.', 'ok');
+      } else {
+        setStatus('Google Photorealistic 3D Tiles loaded (no explicit Google key configured).', 'warn');
+      }
+      return;
+    } catch (googleErr) {
+      viewer.scene.globe.show = true;
+      const tips = [
+        'Google 3D Tiles request failed.',
+        'Check Google Maps Platform setup:',
+        '- Map Tiles API enabled',
+        '- Billing enabled',
+        '- API key restrictions allow http://localhost:9090',
+      ].join('\n');
+
+      if (customErr) {
+        throw new Error(
+          tips +
+          '\n\nCustom tileset error:\n' + String(customErr.message || customErr) +
+          '\n\nGoogle tiles error:\n' + String(googleErr.message || googleErr)
+        );
+      }
+      throw new Error(tips + '\n\n' + String(googleErr.message || googleErr));
+    }
+  }
+
+  function renderStaticContext(world) {
+    // Base label
+    viewer.entities.add({
+      id: 'base-label',
+      position: localToCartesian(world.base_station?.position || { x: 0, y: 0, z: 0 }),
+      label: {
+        text: 'BASE',
+        fillColor: Cesium.Color.fromCssColorString('#83d0ff'),
+        outlineColor: Cesium.Color.BLACK,
+        outlineWidth: 3,
+        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+        font: '16px sans-serif',
+        showBackground: true,
+        backgroundColor: Cesium.Color.fromCssColorString('rgba(9, 25, 45, 0.7)'),
+        verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+        pixelOffset: new Cesium.Cartesian2(0, -14),
+      },
+    });
+
+    // Target labels
+    (world.targets || []).forEach((t) => {
+      viewer.entities.add({
+        id: `target-${t.id}`,
+        position: localToCartesian(t.position),
+        label: {
+          text: `${t.id}  z=${Math.round(t.position?.z || 0)}`,
+          fillColor: Cesium.Color.fromCssColorString('#ffe18a'),
+          outlineColor: Cesium.Color.BLACK,
+          outlineWidth: 2,
+          style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+          font: '14px sans-serif',
+          showBackground: true,
+          backgroundColor: Cesium.Color.fromCssColorString('rgba(40, 32, 10, 0.7)'),
+          verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+          pixelOffset: new Cesium.Cartesian2(0, -12),
+        },
+      });
+    });
+  }
+
+  function addDroneModel(trace) {
+    const sampledPos = new Cesium.SampledPositionProperty();
+    const allPositions = [];
+
+    for (const p of trace) {
+      const t = Cesium.JulianDate.addSeconds(state.startTime, p.step * state.dt, new Cesium.JulianDate());
+      const cart = localToCartesian(p.position);
+      sampledPos.addSample(t, cart);
+      allPositions.push(cart);
+    }
+
+    sampledPos.setInterpolationOptions({
+      interpolationAlgorithm: Cesium.LinearApproximation,
+      interpolationDegree: 1,
+    });
+
+    const droneDef = {
+      id: 'drone',
+      availability: new Cesium.TimeIntervalCollection([
+        new Cesium.TimeInterval({ start: state.startTime, stop: state.stopTime }),
+      ]),
+      position: sampledPos,
+      orientation: new Cesium.VelocityOrientationProperty(sampledPos),
+    };
+
+    if (nonEmpty(state.cfg.models.drone)) {
+      droneDef.model = {
+        uri: state.cfg.models.drone,
+        scale: state.cfg.scales.drone,
+        minimumPixelSize: 80,
+        maximumScale: 300,
+        runAnimations: true,
+        clampAnimations: true,
+        shadows: Cesium.ShadowMode.ENABLED,
+      };
+    } else {
+      droneDef.point = {
+        pixelSize: 13,
+        color: Cesium.Color.fromCssColorString('#53d2ff'),
+        outlineColor: Cesium.Color.WHITE,
+        outlineWidth: 2,
+      };
+      droneDef.label = {
+        text: 'DRONE',
+        font: '13px sans-serif',
+        fillColor: Cesium.Color.fromCssColorString('#9be5ff'),
+        outlineColor: Cesium.Color.BLACK,
+        outlineWidth: 2,
+        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+        verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+        pixelOffset: new Cesium.Cartesian2(0, -12),
+      };
+    }
+
+    state.droneEntity = viewer.entities.add(droneDef);
+    state.sceneSphere = Cesium.BoundingSphere.fromPoints(allPositions);
+
+    viewer.entities.add({
+      id: 'drone-path',
+      polyline: {
+        positions: allPositions,
+        width: 4,
+        material: new Cesium.PolylineGlowMaterialProperty({
+          glowPower: 0.2,
+          taperPower: 0.35,
+          color: Cesium.Color.fromCssColorString('#53d2ff').withAlpha(0.9),
+        }),
+      },
+    });
+
+    trace.forEach((p, i) => {
+      const deliveries = (p.events || []).filter((evt) => evt.startsWith('delivered_'));
+      if (deliveries.length === 0) return;
+      viewer.entities.add({
+        id: `delivery-marker-${i}`,
+        position: localToCartesian(p.position),
+        point: {
+          pixelSize: 14,
+          color: Cesium.Color.GOLD,
+          outlineColor: Cesium.Color.WHITE,
+          outlineWidth: 2,
+        },
+        label: {
+          text: deliveries.join(','),
+          font: '11px sans-serif',
+          fillColor: Cesium.Color.fromCssColorString('#ffd369'),
+          outlineColor: Cesium.Color.BLACK,
+          outlineWidth: 2,
+          style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+          verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+          pixelOffset: new Cesium.Cartesian2(0, -12),
+          showBackground: true,
+          backgroundColor: Cesium.Color.fromCssColorString('rgba(45, 35, 10, 0.75)'),
+        },
+      });
+    });
+  }
+
+  function addFireModels(world) {
+    (world.hazards || []).forEach((h) => {
+      const radius = Number(h.radius) || 100;
+      const height = Number(h.current_height || h.height) || 80;
+      const scale = Math.max(0.4, radius / 90) * state.cfg.scales.fire;
+
+      viewer.entities.add({
+        id: `fire-${h.id}`,
+        name: `Hazard ${h.id}`,
+        position: localXYToCartesian(h.center.x, h.center.y, Math.max(2, height * 0.2)),
+        model: {
+          uri: state.cfg.models.fire,
+          scale,
+          minimumPixelSize: 64,
+          maximumScale: 260,
+          runAnimations: true,
+          clampAnimations: true,
+          shadows: Cesium.ShadowMode.ENABLED,
+        },
+        label: {
+          text: `${h.id} (r=${Math.round(radius)}m)` ,
+          font: '12px sans-serif',
+          fillColor: Cesium.Color.fromCssColorString('#ffb57d'),
+          outlineColor: Cesium.Color.BLACK,
+          outlineWidth: 2,
+          style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+          showBackground: true,
+          backgroundColor: Cesium.Color.fromCssColorString('rgba(50, 20, 10, 0.75)'),
+          verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+          pixelOffset: new Cesium.Cartesian2(0, -12),
+        },
+      });
+    });
+  }
+
+  function addObstacleModels(world) {
+    (world.obstacles || []).forEach((o) => {
+      const min = o.min_corner || { x: 0, y: 0, z: 0 };
+      const max = o.max_corner || { x: 0, y: 0, z: 0 };
+      const sx = Math.max(1, (max.x || 0) - (min.x || 0));
+      const sy = Math.max(1, (max.y || 0) - (min.y || 0));
+      const sz = Math.max(1, (max.z || 0) - (min.z || 0));
+      const area = sx * sy;
+
+      const usePark = area < state.cfg.parkThreshold;
+      const uri = usePark ? state.cfg.models.park : state.cfg.models.building;
+      if (!uri) return;
+
+      const center = {
+        x: (min.x + max.x) / 2,
+        y: (min.y + max.y) / 2,
+        z: (min.z + max.z) / 2,
+      };
+
+      const scale = Math.max(0.4, Math.max(sx, sy, sz) / 70) * state.cfg.scales.object;
+      const heading = headingFromId(String(o.id || 'obj'));
+
+      viewer.entities.add({
+        id: `obstacle-${o.id}`,
+        position: localToCartesian(center),
+        orientation: Cesium.Transforms.headingPitchRollQuaternion(
+          localToCartesian(center),
+          new Cesium.HeadingPitchRoll(heading, 0, 0)
+        ),
+        model: {
+          uri,
+          scale,
+          minimumPixelSize: 42,
+          maximumScale: 350,
+          runAnimations: true,
+          clampAnimations: true,
+          shadows: Cesium.ShadowMode.ENABLED,
+        },
+      });
+    });
+  }
+
+  function addResponderModels(world) {
+    const responders = (world.responders && world.responders.length > 0)
+      ? world.responders
+      : (world.targets || []).map((t, i) => ({
+          id: `R${i + 1}`,
+          position: { x: t.position.x + 8 * (i + 1), y: t.position.y - 8 * (i + 1), z: t.position.z || 0 },
+          status: 'on_site',
+        }));
+
+    responders.forEach((r, i) => {
+      viewer.entities.add({
+        id: `responder-${r.id}`,
+        name: `Responder ${r.id}`,
+        position: localToCartesian(r.position),
+        orientation: Cesium.Transforms.headingPitchRollQuaternion(
+          localToCartesian(r.position),
+          new Cesium.HeadingPitchRoll((i * Math.PI) / 5, 0, 0)
+        ),
+        model: {
+          uri: state.cfg.models.responder,
+          scale: state.cfg.scales.responder,
+          minimumPixelSize: 28,
+          maximumScale: 120,
+          runAnimations: true,
+          clampAnimations: true,
+          shadows: Cesium.ShadowMode.ENABLED,
+        },
+      });
+    });
+  }
+
+  function qualityGate(world) {
+    const missing = [];
+    if (!state.cfg.models.drone) missing.push('Drone model URI');
+    if ((world.hazards || []).length > 0 && !state.cfg.models.fire) missing.push('Fire model URI');
+    if ((world.obstacles || []).length > 0 && !state.cfg.models.building) missing.push('Building model URI');
+    if ((world.obstacles || []).length > 0 && !state.cfg.models.park) missing.push('Park object model URI');
+    if (((world.responders || []).length > 0 || (world.targets || []).length > 0) && !state.cfg.models.responder) {
+      missing.push('Responder model URI');
+    }
+    return missing;
+  }
+
+  function renderSummary(data) {
     const s = data.summary || {};
-    const tags = [];
-    tags.push(`<span class="tag-info">Steps: ${s.total_steps||'?'}</span>`);
-    tags.push(`<span class="tag-info">Reward: ${(s.cumulative_reward||0).toFixed(1)}</span>`);
-    tags.push(`<span class="tag-info">Battery: ${(s.final_battery||0).toFixed(1)}</span>`);
-    const del = (s.delivered||[]).join(', ') || 'none';
-    tags.push(`<span class="tag-info">Delivered: ${del}</span>`);
-    tags.push(s.success
-      ? '<span class="tag-success">SUCCESS</span>'
-      : '<span class="tag-fail">INCOMPLETE</span>');
-    summaryEl.innerHTML = tags.join(' ');
+    const lines = [
+      `<span class="k">Steps:</span>${s.total_steps ?? '--'}`,
+      `<span class="k">Reward:</span>${Number(s.cumulative_reward || 0).toFixed(1)}`,
+      `<span class="k">Battery:</span>${Number(s.final_battery || 0).toFixed(1)}`,
+      `<span class="k">Delivered:</span>${(s.delivered || []).join(', ') || 'none'}`,
+      `<span class="k">Status:</span>${s.success ? '<span style="color:#58e295">SUCCESS</span>' : '<span style="color:#ff9b8a">INCOMPLETE</span>'}`,
+    ];
+    el.summary.innerHTML = lines.join('<br>');
   }
 
-  function showEventLog(trace){
-    eventLog.innerHTML = '';
-    trace.forEach(pt=>{
-      (pt.events||[]).forEach(evt=>{
-        if(!evt) return;
-        let cls = 'evt-info';
-        if(evt.startsWith('delivered_')) cls = 'evt-delivery';
-        else if(evt.startsWith('hazard_')) cls = 'evt-hazard';
-        else if(evt === 'collision') cls = 'evt-collision';
-        else if(evt === 'success') cls = 'evt-success';
-        else if(evt === 'battery_dead') cls = 'evt-battery';
+  function renderEvents(trace) {
+    el.eventLog.innerHTML = '';
+    trace.forEach((p) => {
+      (p.events || []).forEach((evt) => {
+        if (!evt || evt === 'reset') return;
+        let cls = '';
+        if (evt.startsWith('delivered_')) cls = 'delivery';
+        else if (evt.startsWith('hazard_')) cls = 'hazard';
+        else if (evt === 'collision' || evt === 'battery_dead') cls = 'danger';
+        else if (evt === 'success') cls = 'ok';
+
         const div = document.createElement('div');
         div.className = 'evt';
-        div.innerHTML = `<span class="evt-step">s${pt.step}</span> <span class="${cls}">${evt}</span>`;
-        eventLog.appendChild(div);
+        div.innerHTML = `<span class="s">s${p.step}</span><span class="${cls}">${evt}</span>`;
+        div.addEventListener('click', () => jumpToFrame(p.step));
+        el.eventLog.appendChild(div);
       });
     });
-  }
-
-  async function loadTrace(){
-    const name = traceSelect.value;
-    if(!name) return;
-    loadingOverlay.style.display = 'flex';
-    loadingOverlay.textContent = 'Loading trace...';
-
-    try{
-      const resp = await fetch(`/${name}`);
-      if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const data = await resp.json();
-
-      loadingOverlay.textContent = 'Building 3D scene...';
-      await new Promise(r=>setTimeout(r,50));
-
-      const czml = traceToCZML(data);
-      currentCzml = czml;
-
-      viewer.dataSources.removeAll();
-      const ds = await Cesium.CzmlDataSource.load(czml);
-      viewer.dataSources.add(ds);
-
-      // Camera: overview of the operational area from above
-      const baseLl = toLatLon(data.world.base_station.position);
-      viewer.camera.flyTo({
-        destination: Cesium.Cartesian3.fromDegrees(baseLl.lon, baseLl.lat, 12000),
-        orientation: {
-          heading: Cesium.Math.toRadians(0),
-          pitch: Cesium.Math.toRadians(-60),
-          roll: 0,
-        },
-        duration: 1.5,
-      });
-
-      showSummary(data);
-      showEventLog(data.trace);
-
-      isPlaying = false;
-      viewer.clock.shouldAnimate = false;
-      playBtn.textContent = '\u25B6';
-
-      // Reset camera mode to overview
-      camMode = 'overview';
-      setActiveCamBtn(camOverview);
-      stopCamTick();
-
-      loadingOverlay.style.display = 'none';
-    }catch(err){
-      loadingOverlay.textContent = 'Error: ' + err.message;
-      console.error(err);
+    if (!el.eventLog.innerHTML) {
+      el.eventLog.innerHTML = '<div class="tiny">No events in trace.</div>';
     }
   }
 
-  loadBtn.addEventListener('click', loadTrace);
-  traceSelect.addEventListener('dblclick', loadTrace);
-
-  /* ── Playback controls ───────────────────────────────────────────── */
-
-  playBtn.addEventListener('click', ()=>{
-    isPlaying = !isPlaying;
-    viewer.clock.shouldAnimate = isPlaying;
-    playBtn.textContent = isPlaying ? '\u23F8' : '\u25B6';
-  });
-
-  resetBtn.addEventListener('click', ()=>{
-    if(viewer.dataSources.length > 0){
-      const ds = viewer.dataSources.get(0);
-      const clk = ds.clock;
-      if(clk) viewer.clock.currentTime = clk.startTime.clone();
-    }
-  });
-
-  speedSlider.addEventListener('input', ()=>{
-    const v = parseInt(speedSlider.value);
-    viewer.clock.multiplier = v;
-    speedLabel.textContent = v + 'x';
-  });
-
-  /* ── Camera modes ────────────────────────────────────────────────── */
-
-  function setActiveCamBtn(btn){
-    [camOverview, camFollow, camFPV].forEach(b=>b.classList.remove('cam-active'));
-    btn.classList.add('cam-active');
+  function currentFrameFromClock() {
+    if (!state.data || !state.startTime) return 0;
+    const sec = Cesium.JulianDate.secondsDifference(viewer.clock.currentTime, state.startTime);
+    const idx = Math.round(sec / state.dt);
+    return Math.max(0, Math.min(state.data.trace.length - 1, idx));
   }
 
-  function getDroneEntity(){
-    if(viewer.dataSources.length === 0) return null;
-    return viewer.dataSources.get(0).entities.getById('drone');
+  function jumpToFrame(idx) {
+    if (!state.data || !state.startTime) return;
+    const clamped = Math.max(0, Math.min(state.data.trace.length - 1, idx));
+    state.frameIndex = clamped;
+    viewer.clock.currentTime = Cesium.JulianDate.addSeconds(
+      state.startTime,
+      clamped * state.dt,
+      new Cesium.JulianDate()
+    );
+    el.frameSlider.value = String(clamped);
+    updateFrameHud();
   }
 
-  function stopCamTick(){
-    if(tickHandler){
-      tickHandler();
-      tickHandler = null;
+  function updateFrameHud() {
+    if (!state.data) return;
+    const f = state.data.trace[state.frameIndex];
+    const base = [
+      `Frame ${state.frameIndex}/${state.data.trace.length - 1}`,
+      `Drone xyz: ${Math.round(f.position.x)}, ${Math.round(f.position.y)}, ${Math.round(f.position.z || 0)}`,
+      `Battery: ${Number(f.battery || 0).toFixed(1)} | Reward: ${Number(f.reward || 0).toFixed(2)} | Cum: ${Number(f.cumulative_reward || 0).toFixed(1)}`,
+      `Drone asset: ${activeDroneAssetLabel()}`,
+    ];
+    setStatus(base.join('\n'));
+  }
+
+  function clearCameraMode() {
+    if (state.fpvTickRemover) {
+      state.fpvTickRemover();
+      state.fpvTickRemover = null;
     }
+    viewer.camera.lookAtTransform(Cesium.Matrix4.IDENTITY);
     viewer.trackedEntity = undefined;
+    [el.camOverviewBtn, el.camFollowBtn, el.camFPVBtn].forEach((b) => b.classList.add('ghost'));
   }
 
-  camOverview.addEventListener('click', ()=>{
-    camMode = 'overview';
-    setActiveCamBtn(camOverview);
-    stopCamTick();
-    if(viewer.dataSources.length > 0) viewer.flyTo(viewer.dataSources.get(0), {duration:1});
-  });
-
-  camFollow.addEventListener('click', ()=>{
-    camMode = 'follow';
-    setActiveCamBtn(camFollow);
-    stopCamTick();
-    const drone = getDroneEntity();
-    if(!drone) return;
-
-    // Track the drone with a chase-cam offset (behind and above)
-    viewer.trackedEntity = drone;
-    const offset = new Cesium.HeadingPitchRange(
-      Cesium.Math.toRadians(0),
-      Cesium.Math.toRadians(-25),
-      800
-    );
-    viewer.zoomTo(drone, offset);
-  });
-
-  camFPV.addEventListener('click', ()=>{
-    camMode = 'fpv';
-    setActiveCamBtn(camFPV);
-    stopCamTick();
-    const drone = getDroneEntity();
-    if(!drone) return;
-
-    // Tight first-person-ish view locked to drone
-    viewer.trackedEntity = drone;
-    const offset = new Cesium.HeadingPitchRange(
-      Cesium.Math.toRadians(0),
-      Cesium.Math.toRadians(-8),
-      120
-    );
-    viewer.zoomTo(drone, offset);
-
-    // Continuously update heading to face the direction of travel
-    tickHandler = viewer.clock.onTick.addEventListener(()=>{
-      if(!drone || !drone.position) return;
-      const now = viewer.clock.currentTime;
-      const pos = drone.position.getValue(now);
-      if(!pos) return;
-      const future = Cesium.JulianDate.addSeconds(now, 2, new Cesium.JulianDate());
-      const futPos = drone.position.getValue(future);
-      if(!futPos) return;
-      const dir = Cesium.Cartesian3.subtract(futPos, pos, new Cesium.Cartesian3());
-      if(Cesium.Cartesian3.magnitude(dir) < 0.01) return;
-      const heading = Math.atan2(dir.x, dir.y);
-      viewer.camera.setView({
-        destination: viewer.camera.position,
-        orientation:{
-          heading: heading,
-          pitch: Cesium.Math.toRadians(-12),
-          roll: 0,
-        }
+  function setCameraOverview() {
+    clearCameraMode();
+    el.camOverviewBtn.classList.remove('ghost');
+    if (state.sceneSphere) {
+      const range = Math.max(900, state.sceneSphere.radius * 2.4);
+      viewer.camera.flyToBoundingSphere(state.sceneSphere, {
+        offset: new Cesium.HeadingPitchRange(0, Cesium.Math.toRadians(-45), range),
+        duration: 1.2,
       });
+      return;
+    }
+    if (state.droneEntity) {
+      viewer.flyTo(state.droneEntity, {
+        offset: new Cesium.HeadingPitchRange(0, Cesium.Math.toRadians(-38), 1200),
+        duration: 1.2,
+      });
+      return;
+    }
+    viewer.camera.flyTo({
+      destination: Cesium.Cartesian3.fromDegrees(state.cfg.origin.lon, state.cfg.origin.lat, 1800),
+      orientation: { heading: 0, pitch: Cesium.Math.toRadians(-50), roll: 0 },
+      duration: 0.8,
     });
-  });
+  }
 
+  function setCameraFollow() {
+    clearCameraMode();
+    el.camFollowBtn.classList.remove('ghost');
+    if (!state.droneEntity) {
+      setStatus('No drone entity to follow. Load a trace first.', 'warn');
+      return;
+    }
+    viewer.trackedEntity = state.droneEntity;
+    viewer.zoomTo(state.droneEntity, new Cesium.HeadingPitchRange(0, Cesium.Math.toRadians(-30), 300));
+  }
+
+  function setCameraFPV() {
+    clearCameraMode();
+    el.camFPVBtn.classList.remove('ghost');
+    if (!state.droneEntity) {
+      setStatus('No drone entity for FPV mode. Load a trace first.', 'warn');
+      return;
+    }
+
+    state.fpvTickRemover = viewer.clock.onTick.addEventListener(() => {
+      const t = viewer.clock.currentTime;
+      const pos = state.droneEntity.position?.getValue(t);
+      if (!pos) return;
+      const t2 = Cesium.JulianDate.addSeconds(t, 1.5, new Cesium.JulianDate());
+      const p2 = state.droneEntity.position?.getValue(t2);
+      if (!p2) return;
+      const dir = Cesium.Cartesian3.subtract(p2, pos, new Cesium.Cartesian3());
+      if (Cesium.Cartesian3.magnitude(dir) < 0.1) return;
+      const heading = Math.atan2(dir.x, dir.y);
+      viewer.camera.lookAt(
+        pos,
+        new Cesium.HeadingPitchRange(heading, Cesium.Math.toRadians(-8), 42)
+      );
+    });
+  }
+
+  async function buildSceneFromTrace(data) {
+    clearSceneObjects();
+    setupClockFromTrace(data.trace);
+
+    const missing = qualityGate(data.world);
+    if (state.cfg.strictMode && missing.length > 0) {
+      throw new Error('Strict mode blocked rendering. Missing assets:\n- ' + missing.join('\n- '));
+    }
+
+    renderStaticContext(data.world);
+
+    addDroneModel(data.trace);
+    if (state.cfg.models.fire) addFireModels(data.world);
+    if (state.cfg.models.building || state.cfg.models.park) addObstacleModels(data.world);
+    if (state.cfg.models.responder) addResponderModels(data.world);
+
+    await applyTileset();
+
+    if (state.droneEntity) {
+      await viewer.flyTo(state.droneEntity, {
+        offset: new Cesium.HeadingPitchRange(0, Cesium.Math.toRadians(-38), 1200),
+        duration: 1.2,
+      });
+    }
+
+    state.frameIndex = 0;
+    el.frameSlider.max = String(Math.max(0, data.trace.length - 1));
+    el.frameSlider.value = '0';
+    viewer.clock.shouldAnimate = false;
+    el.playPauseBtn.textContent = 'Play';
+
+    renderSummary(data);
+    renderEvents(data.trace);
+    jumpToFrame(0);
+    setCameraOverview();
+    el.overlay.style.display = 'none';
+  }
+
+  async function loadTraceByPath(path) {
+    if (!path) return;
+    el.overlay.style.display = 'flex';
+    el.overlay.textContent = 'Loading trace JSON...';
+
+    const resp = await fetch('/' + path);
+    if (!resp.ok) throw new Error(`Failed to load trace (${resp.status})`);
+
+    const data = await resp.json();
+    if (!data.world || !Array.isArray(data.trace) || data.trace.length === 0) {
+      throw new Error('Invalid trace format: expected world + non-empty trace array');
+    }
+
+    state.data = data;
+    el.overlay.textContent = 'Applying terrain + building cinematic scene...';
+
+    await applyTerrainAndImagery();
+    await buildSceneFromTrace(data);
+  }
+
+  async function refreshTraceList() {
+    el.traceSelect.innerHTML = '<option value="">Loading...</option>';
+    try {
+      const resp = await fetch('/api/traces');
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const traces = await resp.json();
+      el.traceSelect.innerHTML = '<option value="">Select trace...</option>';
+      traces.forEach((name) => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        el.traceSelect.appendChild(opt);
+      });
+      setStatus(`Loaded ${traces.length} trace files.`);
+    } catch (err) {
+      el.traceSelect.innerHTML = '<option value="">Could not load traces</option>';
+      setStatus('Trace list error:\n' + String(err.message || err), 'danger');
+    }
+  }
+
+  function bindEvents() {
+    el.refreshTracesBtn.addEventListener('click', refreshTraceList);
+
+    el.loadTraceBtn.addEventListener('click', async () => {
+      const path = el.traceSelect.value;
+      if (!path) {
+        setStatus('Select a trace first.', 'warn');
+        return;
+      }
+      try {
+        await loadTraceByPath(path);
+        setStatus('Trace loaded with high-fidelity scene.', 'ok');
+      } catch (err) {
+        el.overlay.style.display = 'none';
+        setStatus(String(err.message || err), 'danger');
+      }
+    });
+
+    el.applyConfigBtn.addEventListener('click', async () => {
+      try {
+        await applyTerrainAndImagery();
+        await applyTileset();
+      } catch (err) {
+        setStatus('Apply config failed:\n' + String(err.message || err), 'danger');
+      }
+    });
+
+    el.saveConfigBtn.addEventListener('click', saveCfg);
+
+    el.playPauseBtn.addEventListener('click', () => {
+      if (!state.data) return;
+      viewer.clock.shouldAnimate = !viewer.clock.shouldAnimate;
+      el.playPauseBtn.textContent = viewer.clock.shouldAnimate ? 'Pause' : 'Play';
+    });
+
+    el.resetBtn.addEventListener('click', () => {
+      if (!state.data) return;
+      viewer.clock.shouldAnimate = false;
+      el.playPauseBtn.textContent = 'Play';
+      jumpToFrame(0);
+    });
+
+    el.stepBackBtn.addEventListener('click', () => {
+      if (!state.data) return;
+      viewer.clock.shouldAnimate = false;
+      el.playPauseBtn.textContent = 'Play';
+      jumpToFrame(state.frameIndex - 1);
+    });
+
+    el.stepFwdBtn.addEventListener('click', () => {
+      if (!state.data) return;
+      viewer.clock.shouldAnimate = false;
+      el.playPauseBtn.textContent = 'Play';
+      jumpToFrame(state.frameIndex + 1);
+    });
+
+    el.frameSlider.addEventListener('input', (ev) => {
+      if (!state.data) return;
+      viewer.clock.shouldAnimate = false;
+      el.playPauseBtn.textContent = 'Play';
+      jumpToFrame(Number(ev.target.value));
+    });
+
+    el.speedSlider.addEventListener('input', (ev) => {
+      const v = Number(ev.target.value) || 20;
+      viewer.clock.multiplier = v;
+      el.speedLabel.textContent = `${v}x`;
+    });
+
+    el.camOverviewBtn.addEventListener('click', setCameraOverview);
+    el.camFollowBtn.addEventListener('click', setCameraFollow);
+    el.camFPVBtn.addEventListener('click', setCameraFPV);
+
+    viewer.clock.onTick.addEventListener(() => {
+      if (!state.data) return;
+      const idx = currentFrameFromClock();
+      if (idx !== state.frameIndex) {
+        state.frameIndex = idx;
+        el.frameSlider.value = String(idx);
+        updateFrameHud();
+      }
+    });
+  }
+
+  async function init() {
+    loadSavedCfg();
+    await loadManifestCfg();
+    await loadServerCfg();
+    applyDefaultAutofillCfg();
+    if (!state.cfg.ionToken) state.cfg.ionToken = DEFAULT_ION_TOKEN;
+    if (!state.cfg.googleMapsApiKey) state.cfg.googleMapsApiKey = DEFAULT_GOOGLE_MAPS_API_KEY;
+    persistCfg();
+    cfgToInputs(state.cfg);
+    el.speedLabel.textContent = `${el.speedSlider.value}x`;
+    bindEvents();
+    await refreshTraceList();
+
+    await applyTerrainAndImagery();
+    try {
+      await applyTileset();
+    } catch (err) {
+      setStatus('Initial tileset load failed:\n' + String(err.message || err), 'warn');
+    }
+
+    setCameraOverview();
+  }
+
+  init().catch((err) => {
+    setStatus('Initialization failed:\n' + String(err.message || err), 'danger');
+  });
 })();
 </script>
 </body>

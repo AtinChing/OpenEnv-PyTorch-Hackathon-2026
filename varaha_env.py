@@ -18,8 +18,14 @@ from sim_types import (
     DeliveryTarget,
     HazardRegion,
     ObstacleVolume,
+    CylindricalObstacle,
+    ResponderUnit,
+    ScheduledEvent,
+    RESPONDER_STATUSES,
+    INTEL_TYPES,
     StepInfo,
     TracePoint,
+    MissionInstruction,
 )
 
 
@@ -56,10 +62,27 @@ class VarahaConfig:
     return_bonus: float = 100.0
     step_penalty: float = 0.05
     battery_cost_factor: float = 0.3
-    collision_penalty: float = 300.0
+    collision_penalty: float = 500.0
     hazard_penalty: float = 5.0
     failure_penalty: float = 200.0
     distance_shaping_factor: float = 0.05
+    obstacle_proximity_penalty: float = 1.5
+    obstacle_proximity_radius: float = 80.0
+
+    # Long-horizon instruction mode (LLM-oriented)
+    instruction_mode: bool = False
+    instruction_count: int = 60
+    sparse_reward_mode: bool = False
+    instruction_completion_reward: float = 0.5
+    instruction_terminal_success_bonus: float = 2200.0
+    instruction_terminal_progress_bonus: float = 800.0
+    instruction_violation_penalty: float = 120.0
+    instruction_unfinished_penalty: float = 10.0
+    available_tools: tuple[str, ...] = (
+        "request_intel",
+        "battery_forecast",
+        "mission_report",
+    )
 
     # California origin anchor (near Sacramento — wildfire-relevant)
     origin_lat: float = 38.55
@@ -71,78 +94,280 @@ class VarahaConfig:
 # ---------------------------------------------------------------------------
 
 def build_random_world(env: "VarahaEnv") -> None:
-    """Generate a randomized world layout for domain-randomized training.
+    """Legacy easy world gen — kept for backward compatibility."""
+    build_hardcore_world(env)
 
-    Varies: number of targets (1-3), number of hazards (0-3),
-    number of obstacles (0-4), positions, sizes, urgencies,
-    delivery radii, fire heights, and world scale.
+
+def _hdist(a: Vec3, b: Vec3) -> float:
+    return ((a.x - b.x) ** 2 + (a.y - b.y) ** 2) ** 0.5
+
+
+def build_hardcore_world(env: "VarahaEnv", ultra_hard: bool = False) -> None:
+    """Generate an extremely challenging randomized world for serious RL training.
+
+    Features template-based obstacle placement (urban grid, dense forest,
+    corridor maze, river valley, fortress, mixed), cylindrical obstacles,
+    responder units with dynamic events, and adversarial target placement.
+
+    When ultra_hard=True: denser obstacles, more hazards, more targets, longer episodes.
     """
     cfg = env.cfg
     rng = random
 
-    scale = rng.uniform(0.6, 1.0)
-    wx, wy = cfg.world_x * scale, cfg.world_y * scale
-    margin = 250.0
+    wx, wy, wz = cfg.world_x, cfg.world_y, cfg.world_z
+    margin = 200.0
 
-    def _rpos(z_lo=10.0, z_hi=50.0):
-        return Vec3(
-            rng.uniform(margin, wx - margin),
-            rng.uniform(margin, wy - margin),
-            rng.uniform(z_lo, z_hi),
-        )
+    def _rpos(z_lo=10.0, z_hi=60.0):
+        return Vec3(rng.uniform(margin, wx - margin),
+                    rng.uniform(margin, wy - margin),
+                    rng.uniform(z_lo, z_hi))
 
-    def _hdist(a, b):
-        return ((a.x - b.x) ** 2 + (a.y - b.y) ** 2) ** 0.5
+    def _rpos_ground():
+        return Vec3(rng.uniform(margin, wx - margin),
+                    rng.uniform(margin, wy - margin), 0.0)
 
-    base_pos = Vec3(rng.uniform(80, wx - 80), rng.uniform(80, wy - 80), 0.0)
-    env.base = BaseStation(position=base_pos, recharge_radius=rng.uniform(60, 120))
+    # --- Base station ---
+    base_pos = Vec3(rng.uniform(100, wx - 100), rng.uniform(100, wy - 100), 0.0)
+    env.base = BaseStation(position=base_pos, recharge_radius=rng.uniform(60, 100))
 
-    n_targets = rng.choices([1, 2, 3], weights=[0.15, 0.30, 0.55])[0]
+    # --- Targets (2-5 normal, 3-6 ultra) ---
+    if ultra_hard:
+        n_targets = rng.choices([3, 4, 5, 6], weights=[0.15, 0.35, 0.35, 0.15])[0]
+    else:
+        n_targets = rng.choices([2, 3, 4, 5], weights=[0.15, 0.40, 0.30, 0.15])[0]
     targets = []
-    urgency_pool = [rng.uniform(0.3, 0.6), rng.uniform(0.5, 0.8), rng.uniform(0.8, 1.0)]
-    rng.shuffle(urgency_pool)
     for i in range(n_targets):
-        for _ in range(80):
+        for _ in range(120):
             pos = _rpos(z_lo=5.0, z_hi=60.0)
-            if _hdist(pos, base_pos) < 400:
+            if _hdist(pos, base_pos) < 500:
                 continue
-            if all(_hdist(pos, t.position) > 300 for t in targets):
+            if all(_hdist(pos, t.position) > 400 for t in targets):
                 break
         targets.append(DeliveryTarget(
             id=f"T{i+1}", position=pos,
-            urgency=urgency_pool[i],
-            delivery_radius=rng.uniform(70.0, 140.0),
+            urgency=rng.uniform(0.3, 1.0),
+            delivery_radius=rng.uniform(70.0, 130.0),
         ))
     env.targets = targets
 
-    n_hazards = rng.choices([0, 1, 2, 3], weights=[0.10, 0.35, 0.35, 0.20])[0]
+    # --- Hazards (3-8 normal, 5-10 ultra) with wild variety ---
+    if ultra_hard:
+        n_hazards = rng.choices([5, 6, 7, 8, 9, 10], weights=[0.10, 0.20, 0.25, 0.25, 0.15, 0.05])[0]
+    else:
+        n_hazards = rng.choices([3, 4, 5, 6, 7, 8], weights=[0.10, 0.20, 0.25, 0.25, 0.15, 0.05])[0]
     hazards = []
     for i in range(n_hazards):
-        center = _rpos(z_lo=0, z_hi=0)
-        center.z = 0.0
-        hazards.append(HazardRegion(
-            id=f"H{i+1}", center=center,
-            radius=rng.uniform(250.0, 700.0),
-            severity=rng.uniform(0.4, 1.0),
-            height=rng.uniform(35.0, 100.0),
-            growth_rate=rng.uniform(0.001, 0.012),
-        ))
+        center = _rpos_ground()
+        fire_type = rng.choice(["tiny_intense", "massive_low", "tall_mid", "standard"])
+        if fire_type == "tiny_intense":
+            r, sev, ht, gr = rng.uniform(80, 200), rng.uniform(0.9, 1.0), rng.uniform(140, 195), rng.uniform(0.012, 0.025)
+        elif fire_type == "massive_low":
+            r, sev, ht, gr = rng.uniform(500, 1000), rng.uniform(0.3, 0.5), rng.uniform(25, 50), rng.uniform(0.001, 0.004)
+        elif fire_type == "tall_mid":
+            r, sev, ht, gr = rng.uniform(250, 500), rng.uniform(0.7, 0.95), rng.uniform(100, 180), rng.uniform(0.008, 0.015)
+        else:
+            r, sev, ht, gr = rng.uniform(200, 600), rng.uniform(0.4, 0.9), rng.uniform(40, 120), rng.uniform(0.003, 0.012)
+        hazards.append(HazardRegion(id=f"H{i+1}", center=center,
+                                     radius=r, severity=sev, height=ht, growth_rate=gr))
     env.hazards = hazards
 
-    n_obs = rng.choices([0, 1, 2, 3, 4], weights=[0.10, 0.30, 0.30, 0.20, 0.10])[0]
-    obstacles = []
-    for i in range(n_obs):
-        cx = rng.uniform(margin, wx - margin)
-        cy = rng.uniform(margin, wy - margin)
-        w = rng.uniform(150, 900)
-        h = rng.uniform(150, 900)
-        z_top = rng.uniform(50, 160)
+    # --- Obstacle templates ---
+    obstacles: list[ObstacleVolume] = []
+    cylinders: list[CylindricalObstacle] = []
+    oid = [0]
+
+    def _next_oid(prefix="O"):
+        oid[0] += 1
+        return f"{prefix}{oid[0]}"
+
+    def _add_box(cx, cy, w, h, zt, kind="building"):
         obstacles.append(ObstacleVolume(
-            id=f"O{i+1}",
+            id=_next_oid(), kind=kind,
             min_corner=Vec3(cx - w / 2, cy - h / 2, 0.0),
-            max_corner=Vec3(cx + w / 2, cy + h / 2, z_top),
+            max_corner=Vec3(cx + w / 2, cy + h / 2, zt),
         ))
+
+    def _add_cyl(cx, cy, radius, height, kind="tree"):
+        cylinders.append(CylindricalObstacle(
+            id=_next_oid("C"), kind=kind,
+            center=Vec3(cx, cy, 0.0), radius=radius, height=height,
+        ))
+
+    if ultra_hard:
+        template = rng.choices(["urban_grid", "dense_forest", "corridor_maze",
+                               "river_valley", "fortress", "mixed"],
+                              weights=[0.08, 0.12, 0.12, 0.10, 0.10, 0.48])[0]
+    else:
+        template = rng.choice(["urban_grid", "dense_forest", "corridor_maze",
+                               "river_valley", "fortress", "mixed"])
+
+    # ---- URBAN GRID: rows and columns of buildings ----
+    if template == "urban_grid" or template == "mixed":
+        ox = rng.uniform(500, 1500)
+        oy = rng.uniform(500, 1500)
+        rows = rng.randint(2, 5) if ultra_hard else rng.randint(2, 4)
+        cols = rng.randint(3, 6) if ultra_hard else rng.randint(3, 5)
+        spacing = rng.uniform(300, 550) if ultra_hard else rng.uniform(350, 600)
+        for r in range(rows):
+            for c in range(cols):
+                bx = ox + c * spacing + rng.uniform(-80, 80)
+                by = oy + r * spacing + rng.uniform(-80, 80)
+                if bx < margin or bx > wx - margin or by < margin or by > wy - margin:
+                    continue
+                bw = rng.uniform(80, 300)
+                bh = rng.uniform(80, 300)
+                bzt = rng.choice([rng.uniform(30, 60), rng.uniform(100, 195)])
+                _add_box(bx, by, bw, bh, bzt)
+                if rng.random() < (0.45 if ultra_hard else 0.3):
+                    arm_dir = rng.choice(["east", "north"])
+                    if arm_dir == "east":
+                        _add_box(bx + bw / 2 + 40, by, 80, bh * 0.6, bzt * 0.9)
+                    else:
+                        _add_box(bx, by + bh / 2 + 40, bw * 0.6, 80, bzt * 0.9)
+
+    # ---- DENSE FOREST: many cylindrical trees ----
+    if template == "dense_forest" or template == "mixed":
+        forest_cx = rng.uniform(800, wx - 800)
+        forest_cy = rng.uniform(800, wy - 800)
+        n_trees = rng.randint(25, 60) if ultra_hard else rng.randint(15, 40)
+        for _ in range(n_trees):
+            tx = forest_cx + rng.gauss(0, 600)
+            ty = forest_cy + rng.gauss(0, 600)
+            tx = max(margin, min(wx - margin, tx))
+            ty = max(margin, min(wy - margin, ty))
+            tree_type = rng.choice(["pine", "oak", "palm", "dead"])
+            if tree_type == "pine":
+                _add_cyl(tx, ty, rng.uniform(8, 20), rng.uniform(40, 100), "tree_pine")
+            elif tree_type == "oak":
+                _add_cyl(tx, ty, rng.uniform(15, 40), rng.uniform(25, 60), "tree_oak")
+            elif tree_type == "palm":
+                _add_cyl(tx, ty, rng.uniform(5, 12), rng.uniform(30, 80), "tree_palm")
+            else:
+                _add_cyl(tx, ty, rng.uniform(10, 25), rng.uniform(20, 50), "tree_dead")
+
+    # ---- CORRIDOR MAZE: parallel walls with gaps ----
+    if template == "corridor_maze" or template == "mixed":
+        maze_ox = rng.uniform(400, wx / 2)
+        maze_oy = rng.uniform(400, wy / 2)
+        n_walls = rng.randint(6, 12) if ultra_hard else rng.randint(4, 8)
+        wall_dir = rng.choice(["horizontal", "vertical"])
+        spacing = rng.uniform(200, 500)
+        for w in range(n_walls):
+            wl = rng.uniform(400, 1500)
+            wt = rng.uniform(40, 80)
+            wzt = rng.uniform(100, 195)
+            if wall_dir == "horizontal":
+                wy_pos = maze_oy + w * spacing
+                if wy_pos > wy - margin:
+                    continue
+                _add_box(maze_ox + wl / 2, wy_pos, wl, wt, wzt, "wall")
+                gap_x = maze_ox + rng.uniform(0.2, 0.8) * wl
+                _add_box(gap_x, wy_pos, rng.uniform(80, 200), wt, 0, "gap")
+            else:
+                wx_pos = maze_ox + w * spacing
+                if wx_pos > wx - margin:
+                    continue
+                _add_box(wx_pos, maze_oy + wl / 2, wt, wl, wzt, "wall")
+
+    # ---- RIVER VALLEY: chain of low flat boxes + scattered trees ----
+    if template == "river_valley" or (template == "mixed" and rng.random() < (0.7 if ultra_hard else 0.5)):
+        river_start_x = rng.uniform(margin, wx / 3)
+        river_y = rng.uniform(wy * 0.3, wy * 0.7)
+        n_segs = rng.randint(10, 18) if ultra_hard else rng.randint(6, 12)
+        for seg in range(n_segs):
+            seg_x = river_start_x + seg * rng.uniform(200, 400)
+            seg_y = river_y + rng.gauss(0, 150)
+            if seg_x > wx - margin:
+                break
+            seg_y = max(margin, min(wy - margin, seg_y))
+            _add_box(seg_x, seg_y, rng.uniform(200, 400), rng.uniform(60, 150),
+                     rng.uniform(3, 10), "river")
+            for _ in range(rng.randint(2, 6) if ultra_hard else rng.randint(1, 4)):
+                bank_offset = rng.choice([-1, 1]) * rng.uniform(100, 300)
+                _add_cyl(seg_x + rng.uniform(-100, 100),
+                          seg_y + bank_offset,
+                          rng.uniform(8, 20), rng.uniform(30, 80), "tree_bank")
+
+    # ---- FORTRESS: walls surrounding a target area ----
+    if template == "fortress" or (template == "mixed" and rng.random() < (0.6 if ultra_hard else 0.4)):
+        if targets:
+            fort_target = rng.choice(targets)
+            ftx, fty = fort_target.position.x, fort_target.position.y
+            wall_half = rng.uniform(250, 500)
+            wall_zt = rng.uniform(120, 190)
+            wall_thick = rng.uniform(50, 80)
+            _add_box(ftx, fty - wall_half, wall_half * 2, wall_thick, wall_zt, "fortress_wall")
+            _add_box(ftx, fty + wall_half, wall_half * 2, wall_thick, wall_zt, "fortress_wall")
+            _add_box(ftx - wall_half, fty, wall_thick, wall_half * 2, wall_zt, "fortress_wall")
+            _add_box(ftx + wall_half, fty, wall_thick, wall_half * 2, wall_zt, "fortress_wall")
+
+    # ---- Always scatter some light poles and random pillars ----
+    n_poles = rng.randint(6, 18) if ultra_hard else rng.randint(3, 10)
+    for _ in range(n_poles):
+        px = rng.uniform(margin, wx - margin)
+        py = rng.uniform(margin, wy - margin)
+        _add_cyl(px, py, rng.uniform(2, 6), rng.uniform(30, 80), "light_pole")
+
+    n_pillars = rng.randint(4, 12) if ultra_hard else rng.randint(2, 6)
+    for _ in range(n_pillars):
+        px = rng.uniform(margin, wx - margin)
+        py = rng.uniform(margin, wy - margin)
+        _add_cyl(px, py, rng.uniform(15, 50), rng.uniform(80, 195), "pillar")
+
+    obstacles = [o for o in obstacles if o.max_corner.z > 1.0]
     env.obstacles = obstacles
+    env.cylinders = cylinders
+
+    # --- Responder units (1 per target, up to 5 in ultra) ---
+    responders = []
+    max_resp = 5 if ultra_hard else 4
+    for i, tgt in enumerate(targets[:max_resp]):
+        r = ResponderUnit(
+            id=f"R{i+1}",
+            position=Vec3(tgt.position.x + rng.uniform(-50, 50),
+                          tgt.position.y + rng.uniform(-50, 50), 0.0),
+            linked_target_id=tgt.id,
+            status="stable",
+            current_need=rng.choice(["supplies", "medical", "evacuation", "water"]),
+            can_update_dropzone=rng.random() < 0.5,
+            active=True,
+        )
+        events = []
+
+        if rng.random() < 0.7:
+            events.append(ScheduledEvent(
+                step=rng.randint(100, 600),
+                event_type="urgency_update",
+                payload={"new_urgency": rng.uniform(0.5, 1.0)},
+            ))
+
+        if r.can_update_dropzone and rng.random() < 0.5:
+            events.append(ScheduledEvent(
+                step=rng.randint(200, 800),
+                event_type="dropzone_relocation",
+                payload={"dx": rng.uniform(-200, 200), "dy": rng.uniform(-200, 200)},
+            ))
+
+        if rng.random() < 0.6:
+            intel = rng.choice([
+                "blocked_north", "blocked_south", "blocked_east", "blocked_west",
+                "safe_north", "safe_south", "safe_east", "safe_west",
+                "fire_expanded", "fire_receded",
+            ])
+            events.append(ScheduledEvent(
+                step=rng.randint(50, 500),
+                event_type="hazard_intel",
+                payload={"intel": intel, "severity": rng.uniform(0.3, 1.0)},
+            ))
+
+        r.scheduled_events = events
+        responders.append(r)
+    env.responders = responders
+
+
+def build_hardcore_world_v2(env: "VarahaEnv") -> None:
+    """Ultra-hard variant: denser obstacles, more hazards, more targets."""
+    build_hardcore_world(env, ultra_hard=True)
 
 
 # ---------------------------------------------------------------------------
@@ -160,6 +385,7 @@ class VarahaEnv:
             "az": float,       # desired acceleration z
             "deliver": bool,   # attempt delivery if near a target
             "recharge": bool,  # attempt recharge if near base
+            "tool_call": str,  # optional: request_intel | battery_forecast | mission_report
         }
 
     Returns ``(obs_dict, reward, done, info_dict)`` per OpenAI-gym convention.
@@ -175,6 +401,8 @@ class VarahaEnv:
         self.targets: list[DeliveryTarget] = []
         self.hazards: list[HazardRegion] = []
         self.obstacles: list[ObstacleVolume] = []
+        self.cylinders: list[CylindricalObstacle] = []
+        self.responders: list[ResponderUnit] = []
 
         self.step_count: int = 0
         self.cumulative_reward: float = 0.0
@@ -184,6 +412,12 @@ class VarahaEnv:
         self._prev_nearest_dist: float = 0.0
         self._hazard_base_heights: list[float] = []
         self._hazard_base_severities: list[float] = []
+        self.instructions: list[MissionInstruction] = []
+        self._instruction_cursor: int = 0
+        self._instruction_violations: int = 0
+        self._tool_history: list[str] = []
+        self._last_tool_result: dict[str, Any] = {}
+        self._instruction_progress_reward: float = 0.0
 
         self._rebuild_world()
 
@@ -294,6 +528,24 @@ class VarahaEnv:
             h.severity = max(0.3, min(1.0, self._hazard_base_severities[i] + random.uniform(-0.1, 0.1)))
             h.reset()
 
+        for r in self.responders:
+            r.active = True
+            r.status = "stable"
+            r.latest_intel = "none"
+            r.intel_severity = 0.0
+            r.message = ""
+            for ev in r.scheduled_events:
+                ev.fired = False
+
+        self._target_base_positions = {
+            t.id: Vec3(t.position.x, t.position.y, t.position.z)
+            for t in self.targets
+        }
+        self._build_instruction_program()
+        self._instruction_progress_reward = 0.0
+        self._last_tool_result = {}
+        self._tool_history = []
+
         self.step_count = 0
         self.cumulative_reward = 0.0
         self.done = False
@@ -356,10 +608,20 @@ class VarahaEnv:
         for h in self.hazards:
             h.tick()
 
+        # --- advance responder events ---
+        self._tick_responders()
+
         # --- world interactions ---
         collision = self._check_collisions()
         in_hazard, hazard_sev = self._check_hazards()
 
+        tool_call = ""
+        tool_result: dict[str, Any] = {}
+        raw_tool_call = action.get("tool_call")
+        if raw_tool_call is not None and str(raw_tool_call).strip():
+            tool_call, tool_result = self._execute_tool_call(str(raw_tool_call).strip())
+
+        prev_instruction_cursor = self._instruction_cursor
         delivered_ids: list[str] = []
         if action.get("deliver", False):
             delivered_ids = self._deliver_targets()
@@ -375,6 +637,13 @@ class VarahaEnv:
                 self.drone.battery + self.cfg.recharge_rate,
             )
 
+        self._update_instruction_progress(
+            delivered_ids=delivered_ids,
+            reached_base=reached_base,
+            tool_call=tool_call,
+        )
+        completed_now = max(0, self._instruction_cursor - prev_instruction_cursor)
+
         if self._all_delivered():
             self.drone.carrying_payload = False
 
@@ -386,6 +655,11 @@ class VarahaEnv:
             hazard_severity=hazard_sev,
             reached_base=reached_base,
             distance_traveled=dist_traveled,
+            tool_call=tool_call,
+            tool_result=tool_result,
+            instruction_completed=self._instruction_cursor,
+            instruction_total=len(self.instructions),
+            instruction_violations=self._instruction_violations,
         )
         reward, breakdown = self._compute_reward(info)
         info.reward_breakdown = breakdown
@@ -416,6 +690,10 @@ class VarahaEnv:
             events.append("battery_dead")
         if self._is_success():
             events.append("success")
+        if tool_call:
+            events.append(f"tool_{tool_call}")
+        if completed_now > 0:
+            events.append(f"instruction+{completed_now}")
 
         obs = self.get_observation()
 
@@ -438,9 +716,11 @@ class VarahaEnv:
 
     def get_observation(self) -> dict[str, Any]:
         """Compact, RL-friendly observation dict."""
+        dp = self.drone.position
+
         targets_obs = []
         for t in self.targets:
-            rel = t.position - self.drone.position
+            rel = t.position - dp
             targets_obs.append({
                 "id": t.id,
                 "relative_position": rel.to_dict(),
@@ -450,7 +730,7 @@ class VarahaEnv:
 
         hazards_obs = []
         for h in self.hazards:
-            rel = h.center - self.drone.position
+            rel = h.center - dp
             hazards_obs.append({
                 "id": h.id,
                 "relative_position": rel.to_dict(),
@@ -458,14 +738,65 @@ class VarahaEnv:
                 "severity": h.severity,
             })
 
+        obstacles_obs = []
+        for obs in self.obstacles:
+            c = obs.center
+            hs = obs.half_size
+            rel = c - dp
+            dist = dp.horizontal_distance_to(c)
+            obstacles_obs.append({
+                "type": "box",
+                "relative_position": rel.to_dict(),
+                "height": obs.height,
+                "size_x": hs.x * 2,
+                "size_y": hs.y * 2,
+                "distance": dist,
+                "kind": obs.kind,
+            })
+        for cyl in self.cylinders:
+            rel = cyl.center - dp
+            dist = dp.horizontal_distance_to(cyl.center)
+            obstacles_obs.append({
+                "type": "cylinder",
+                "relative_position": rel.to_dict(),
+                "height": cyl.height,
+                "size_x": cyl.radius * 2,
+                "size_y": cyl.radius * 2,
+                "distance": dist,
+                "kind": cyl.kind,
+            })
+        obstacles_obs.sort(key=lambda o: o["distance"])
+
+        responders_obs = []
+        for r in self.responders:
+            if not r.active:
+                continue
+            rel = r.position - dp
+            intel_dir = r.intel_direction()
+            responders_obs.append({
+                "id": r.id,
+                "relative_position": rel.to_dict(),
+                "linked_target_id": r.linked_target_id,
+                "status": r.status,
+                "status_code": r.status_code(),
+                "latest_intel": r.latest_intel,
+                "intel_direction": {"x": intel_dir[0], "y": intel_dir[1]},
+                "intel_severity": r.intel_severity,
+            })
+
+        mission_obs = self._instruction_snapshot()
         return {
-            "drone_position": self.drone.position.to_dict(),
+            "drone_position": dp.to_dict(),
             "drone_velocity": self.drone.velocity.to_dict(),
             "battery": round(self.drone.battery, 4),
             "carrying_payload": self.drone.carrying_payload,
             "alive": self.drone.alive,
             "targets": targets_obs,
             "hazards": hazards_obs,
+            "obstacles": obstacles_obs,
+            "responders": responders_obs,
+            "mission": mission_obs,
+            "last_tool_result": self._last_tool_result,
             "step": self.step_count,
             "max_steps": self.cfg.max_episode_steps,
         }
@@ -478,6 +809,10 @@ class VarahaEnv:
             "targets": [t.to_dict() for t in self.targets],
             "hazards": [h.to_dict() for h in self.hazards],
             "obstacles": [o.to_dict() for o in self.obstacles],
+            "cylinders": [c.to_dict() for c in self.cylinders],
+            "responders": [r.to_dict() for r in self.responders],
+            "mission": self._instruction_snapshot(include_full=True),
+            "tool_history": list(self._tool_history),
             "step": self.step_count,
             "max_steps": self.cfg.max_episode_steps,
             "cumulative_reward": round(self.cumulative_reward, 4),
@@ -493,6 +828,9 @@ class VarahaEnv:
                 "targets": [t.to_dict() for t in self.targets],
                 "hazards": [h.to_dict() for h in self.hazards],
                 "obstacles": [o.to_dict() for o in self.obstacles],
+                "cylinders": [c.to_dict() for c in self.cylinders],
+                "responders": [r.to_dict() for r in self.responders],
+                "mission": self._instruction_snapshot(include_full=True),
             },
             "trace": [tp.to_dict() for tp in self.trace],
             "summary": {
@@ -502,8 +840,210 @@ class VarahaEnv:
                 "alive": self.drone.alive,
                 "final_battery": round(self.drone.battery, 4),
                 "success": self._is_success(),
+                "instruction_completed": self._instruction_cursor,
+                "instruction_total": len(self.instructions),
+                "instruction_violations": self._instruction_violations,
+                "tool_calls": list(self._tool_history),
             },
         }
+
+    # ------------------------------------------------------------------
+    # Long-horizon instruction mode
+    # ------------------------------------------------------------------
+
+    def _build_instruction_program(self) -> None:
+        self.instructions = []
+        self._instruction_cursor = 0
+        self._instruction_violations = 0
+
+        if not self.cfg.instruction_mode or not self.targets:
+            return
+
+        ordered_targets = sorted(self.targets, key=lambda t: (-t.urgency, t.id))
+        target_count = len(ordered_targets)
+        desired_len = self.cfg.instruction_count if self.cfg.instruction_count > 0 else (target_count * 3 + 1)
+        desired_len = max(desired_len, target_count * 2 + 1)
+
+        instructions: list[MissionInstruction] = []
+        inst_idx = 1
+        cycle = 0
+        while len(instructions) < max(desired_len - 1, 1):
+            for tgt in ordered_targets:
+                if len(instructions) >= max(desired_len - 1, 1):
+                    break
+                instructions.append(
+                    MissionInstruction(
+                        id=f"I{inst_idx}",
+                        kind="deliver_target",
+                        description=f"Cycle {cycle + 1}: deliver to {tgt.id} in order.",
+                        target_id=tgt.id,
+                    )
+                )
+                inst_idx += 1
+                if len(instructions) >= max(desired_len - 1, 1):
+                    break
+                tool = "request_intel" if (cycle % 2 == 0) else "battery_forecast"
+                instructions.append(
+                    MissionInstruction(
+                        id=f"I{inst_idx}",
+                        kind="tool_call",
+                        description=f"Call {tool} after servicing {tgt.id}.",
+                        target_id=tgt.id,
+                        tool_name=tool,
+                    )
+                )
+                inst_idx += 1
+            cycle += 1
+
+        instructions.append(
+            MissionInstruction(
+                id=f"I{inst_idx}",
+                kind="return_base",
+                description="Return to base only after all deliveries are completed.",
+            )
+        )
+        self.instructions = instructions
+
+    def _current_instruction(self) -> Optional[MissionInstruction]:
+        if self._instruction_cursor >= len(self.instructions):
+            return None
+        return self.instructions[self._instruction_cursor]
+
+    def _instruction_snapshot(self, include_full: bool = False) -> dict[str, Any]:
+        total = len(self.instructions)
+        completed = min(self._instruction_cursor, total)
+        next_instruction = self._current_instruction()
+        out: dict[str, Any] = {
+            "enabled": self.cfg.instruction_mode,
+            "total": total,
+            "completed": completed,
+            "remaining": max(total - completed, 0),
+            "progress": (completed / total) if total > 0 else 1.0,
+            "violations": self._instruction_violations,
+            "next_instruction": next_instruction.to_dict() if next_instruction else None,
+        }
+        if include_full:
+            out["instructions"] = [inst.to_dict() for inst in self.instructions]
+        return out
+
+    def _complete_current_instruction(self) -> None:
+        inst = self._current_instruction()
+        if inst is None:
+            return
+        inst.completed = True
+        self._instruction_cursor += 1
+        self._instruction_progress_reward += self.cfg.instruction_completion_reward
+
+    def _record_instruction_violation(self) -> None:
+        self._instruction_violations += 1
+        inst = self._current_instruction()
+        if inst is not None:
+            inst.violated = True
+
+    def _tool_matches_instruction(self, tool_call: str, inst: MissionInstruction) -> bool:
+        base, _, arg = tool_call.partition(":")
+        if base != inst.tool_name:
+            return False
+        if inst.target_id and arg and arg != inst.target_id:
+            return False
+        return True
+
+    def _update_instruction_progress(
+        self,
+        delivered_ids: list[str],
+        reached_base: bool,
+        tool_call: str,
+    ) -> None:
+        if not self.cfg.instruction_mode or not self.instructions:
+            return
+
+        inst = self._current_instruction()
+        if inst and inst.kind == "deliver_target":
+            for tid in delivered_ids:
+                if tid != inst.target_id:
+                    self._record_instruction_violation()
+
+        while True:
+            inst = self._current_instruction()
+            if inst is None:
+                break
+
+            if inst.kind == "deliver_target":
+                if inst.target_id in delivered_ids:
+                    self._complete_current_instruction()
+                    continue
+                break
+
+            if inst.kind == "tool_call":
+                if not tool_call:
+                    break
+                if self._tool_matches_instruction(tool_call, inst):
+                    self._complete_current_instruction()
+                else:
+                    self._record_instruction_violation()
+                break
+
+            if inst.kind == "return_base":
+                if reached_base and self._all_delivered():
+                    self._complete_current_instruction()
+                break
+
+            break
+
+    def _execute_tool_call(self, tool_call: str) -> tuple[str, dict[str, Any]]:
+        raw = tool_call.strip().lower()
+        if not raw:
+            return "", {}
+
+        tool_name, _, arg = raw.partition(":")
+        normalized_call = f"{tool_name}:{arg}" if arg else tool_name
+
+        if tool_name not in self.cfg.available_tools:
+            result = {"ok": False, "error": f"unsupported_tool:{tool_name}"}
+            self._tool_history.append(normalized_call)
+            self._last_tool_result = result
+            return normalized_call, result
+
+        if tool_name == "request_intel":
+            responder = None
+            if arg:
+                responder = next(
+                    (r for r in self.responders if r.active and r.linked_target_id.lower() == arg.lower()),
+                    None,
+                )
+            if responder is None:
+                responder = next((r for r in self.responders if r.active), None)
+            if responder is None:
+                result = {"ok": True, "intel": "none", "message": "no_active_responders"}
+            else:
+                result = {
+                    "ok": True,
+                    "intel": responder.latest_intel,
+                    "intel_severity": round(responder.intel_severity, 3),
+                    "responder_id": responder.id,
+                    "target_id": responder.linked_target_id,
+                    "message": responder.message,
+                }
+        elif tool_name == "battery_forecast":
+            burn = max(self.cfg.drain_per_meter, 1e-6)
+            est_range = self.drone.battery / burn
+            result = {
+                "ok": True,
+                "battery": round(self.drone.battery, 3),
+                "estimated_range_m": round(est_range, 1),
+            }
+        else:  # mission_report
+            result = {
+                "ok": True,
+                "delivered": [t.id for t in self.targets if t.delivered],
+                "remaining": [t.id for t in self.targets if not t.delivered],
+                "instruction_progress": round(self._instruction_snapshot()["progress"], 3),
+                "violations": self._instruction_violations,
+            }
+
+        self._tool_history.append(normalized_call)
+        self._last_tool_result = result
+        return normalized_call, result
 
     # ------------------------------------------------------------------
     # Coordinate conversion
@@ -537,6 +1077,9 @@ class VarahaEnv:
     def _check_collisions(self) -> bool:
         for obs in self.obstacles:
             if obs.contains(self.drone.position):
+                return True
+        for cyl in self.cylinders:
+            if cyl.contains(self.drone.position):
                 return True
         return False
 
@@ -587,7 +1130,67 @@ class VarahaEnv:
                     + (self.drone.position.y - self.base.position.y) ** 2) ** 0.5
         return min(dists)
 
+    def _tick_responders(self) -> None:
+        """Process scheduled responder events for the current step."""
+        for r in self.responders:
+            if not r.active:
+                continue
+            for ev in r.scheduled_events:
+                if ev.fired or ev.step != self.step_count:
+                    continue
+                ev.fired = True
+                etype = ev.event_type
+
+                if etype == "urgency_update":
+                    tgt = self._find_target(r.linked_target_id)
+                    if tgt and not tgt.delivered:
+                        tgt.urgency = max(0.1, min(1.0, ev.payload.get("new_urgency", tgt.urgency)))
+                        r.status = "critical" if tgt.urgency >= 0.9 else "urgent" if tgt.urgency >= 0.6 else "stable"
+                        r.message = f"urgency->{tgt.urgency:.1f}"
+
+                elif etype == "dropzone_relocation":
+                    tgt = self._find_target(r.linked_target_id)
+                    if tgt and not tgt.delivered and r.can_update_dropzone:
+                        dx = ev.payload.get("dx", 0.0)
+                        dy = ev.payload.get("dy", 0.0)
+                        tgt.position.x = max(50, min(self.cfg.world_x - 50, tgt.position.x + dx))
+                        tgt.position.y = max(50, min(self.cfg.world_y - 50, tgt.position.y + dy))
+                        r.position = Vec3(tgt.position.x, tgt.position.y, 0.0)
+                        r.message = f"dropzone moved ({dx:+.0f},{dy:+.0f})"
+                        self._prev_nearest_dist = self._nearest_target_dist()
+
+                elif etype == "hazard_intel":
+                    r.latest_intel = ev.payload.get("intel", "none")
+                    r.intel_severity = ev.payload.get("severity", 0.5)
+                    r.message = f"intel: {r.latest_intel}"
+
+    def _find_target(self, tid: str) -> Optional[DeliveryTarget]:
+        for t in self.targets:
+            if t.id == tid:
+                return t
+        return None
+
+    def _obstacle_proximity_penalty(self) -> float:
+        """Graduated penalty for flying close to any obstacle surface."""
+        min_dist = float("inf")
+        pos = self.drone.position
+        for obs in self.obstacles:
+            d = obs.nearest_surface_dist(pos)
+            if d < min_dist:
+                min_dist = d
+        for cyl in self.cylinders:
+            d = cyl.nearest_surface_dist(pos)
+            if d < min_dist:
+                min_dist = d
+        if min_dist >= self.cfg.obstacle_proximity_radius:
+            return 0.0
+        factor = 1.0 - min_dist / self.cfg.obstacle_proximity_radius
+        return self.cfg.obstacle_proximity_penalty * factor * factor
+
     def _compute_reward(self, info: StepInfo) -> tuple[float, dict[str, float]]:
+        if self.cfg.instruction_mode and self.cfg.sparse_reward_mode:
+            return self._compute_sparse_instruction_reward(info)
+
         bd: dict[str, float] = {}
         total = 0.0
 
@@ -600,6 +1203,11 @@ class VarahaEnv:
             info.distance_traveled * self.cfg.drain_per_meter * self.cfg.battery_cost_factor
         )
         total += bd["battery_cost"]
+
+        if self._instruction_progress_reward > 0.0:
+            bd["instruction_progress"] = self._instruction_progress_reward
+            total += bd["instruction_progress"]
+            self._instruction_progress_reward = 0.0
 
         # delivery rewards (scaled by urgency) + progress bonus
         for tid in info.delivered_target_ids:
@@ -646,10 +1254,70 @@ class VarahaEnv:
             total += shaping
             self._prev_nearest_dist = curr_dist
 
+        # obstacle proximity (graduated — discourages flying close)
+        prox = self._obstacle_proximity_penalty()
+        if prox > 0:
+            bd["obstacle_proximity"] = -prox
+            total -= prox
+
         # failure (battery depletion; collision already penalised above)
         if self.drone.battery <= 0.0 and not info.collision:
             bd["failure"] = -self.cfg.failure_penalty
             total += bd["failure"]
+
+        bd["total"] = total
+        return total, bd
+
+    def _compute_sparse_instruction_reward(self, info: StepInfo) -> tuple[float, dict[str, float]]:
+        bd: dict[str, float] = {}
+        total = 0.0
+
+        # Keep shaping intentionally small in sparse mode.
+        bd["step_penalty"] = -(self.cfg.step_penalty * 0.25)
+        total += bd["step_penalty"]
+
+        if self._instruction_progress_reward > 0.0:
+            bd["instruction_progress"] = self._instruction_progress_reward
+            total += bd["instruction_progress"]
+            self._instruction_progress_reward = 0.0
+
+        if info.in_hazard:
+            bd["hazard"] = -(self.cfg.hazard_penalty * 0.2 * info.hazard_severity)
+            total += bd["hazard"]
+
+        terminal = (
+            info.collision
+            or self.drone.battery <= 0.0
+            or self._is_success()
+            or self.step_count >= self.cfg.max_episode_steps
+        )
+        if terminal:
+            total_instr = len(self.instructions)
+            progress = (self._instruction_cursor / total_instr) if total_instr > 0 else 1.0
+            bd["terminal_progress"] = self.cfg.instruction_terminal_progress_bonus * progress
+            total += bd["terminal_progress"]
+
+            if self._is_success():
+                bd["terminal_success"] = self.cfg.instruction_terminal_success_bonus
+                total += bd["terminal_success"]
+            else:
+                bd["terminal_failure"] = -self.cfg.failure_penalty
+                total += bd["terminal_failure"]
+
+            remaining = max(total_instr - self._instruction_cursor, 0)
+            if remaining > 0:
+                bd["unfinished_penalty"] = -remaining * self.cfg.instruction_unfinished_penalty
+                total += bd["unfinished_penalty"]
+
+            if self._instruction_violations > 0:
+                bd["instruction_violations"] = (
+                    -self._instruction_violations * self.cfg.instruction_violation_penalty
+                )
+                total += bd["instruction_violations"]
+
+            if info.collision:
+                bd["collision"] = -self.cfg.collision_penalty
+                total += bd["collision"]
 
         bd["total"] = total
         return total, bd

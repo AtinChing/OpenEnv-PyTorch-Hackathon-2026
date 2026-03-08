@@ -14,6 +14,10 @@ class VarahaAction(Action):
     az: float = Field(0.0, description="Desired acceleration along z-axis (m/s^2)")
     deliver: bool = Field(True, description="Attempt delivery when near a target")
     recharge: bool = Field(True, description="Attempt recharge when near base station")
+    tool_call: str = Field(
+        "",
+        description="Optional tool call: request_intel[:target_id] | battery_forecast | mission_report",
+    )
 
 
 class VarahaObservation(Observation):
@@ -40,6 +44,14 @@ class VarahaObservation(Observation):
     max_steps: int = Field(2000, description="Maximum allowed steps")
     reward_breakdown: Dict[str, float] = Field(
         default_factory=dict, description="Itemised reward components from the last step"
+    )
+    mission: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Instruction-mode progress, next instruction, and violation counters",
+    )
+    last_tool_result: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Result payload from the most recent tool call",
     )
     success: bool = Field(False, description="Whether the mission is successfully completed")
     trace: Optional[Dict[str, Any]] = Field(

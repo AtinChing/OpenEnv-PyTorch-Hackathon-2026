@@ -1,0 +1,38 @@
+[
+  {
+    "map": "final_boss",
+    "mean_reward": 1917.6,
+    "std_reward": 0.0,
+    "mean_deliveries": 3.0,
+    "max_deliveries": 3,
+    "success_rate": 1.0,
+    "mean_length": 1758.0,
+    "best_reward": 1917.6,
+    "best_delivered": [
+      "T1",
+      "T2",
+      "T3"
+    ],
+    "trace_file": "./results/generalization/trace_final_boss_planner.json",
+    "controller": "planner",
+    "seed_offset": 30000
+  },
+  {
+    "map": "altitude_gauntlet",
+    "mean_reward": 1112.9,
+    "std_reward": 11.2,
+    "mean_deliveries": 3.0,
+    "max_deliveries": 3,
+    "success_rate": 1.0,
+    "mean_length": 2380.0,
+    "best_reward": 1120.3,
+    "best_delivered": [
+      "T1",
+      "T2",
+      "T3"
+    ],
+    "trace_file": "./results/generalization/trace_altitude_gauntlet_planner.json",
+    "controller": "planner",
+    "seed_offset": 30000
+  }
+]
